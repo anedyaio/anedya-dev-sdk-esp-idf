@@ -1,2 +1,4 @@
-idf_component_register(SRCS "anedya-dev-esp-idf.c"
-                    INCLUDE_DIRS "include")
+FILE(GLOB AnedyaSDKSource *.c)
+idf_component_register(SRCS ${AnedyaSDKSource}
+                    INCLUDE_DIRS "include"
+                    PRIV_REQUIRES esp_event esp_netif esp-tls mqtt)
