@@ -1,0 +1,17 @@
+menu "Anedya SDK Settings"
+    choice "Connection Method"
+        prompt "Select protocol for connection with Anedya"
+        default CONN_ANEDYA_MQTT
+        config CONN_ANEDYA_MQTT
+            bool "MQTTS"
+    endchoice  
+    config AN_MAX_CONCURRENT_TXN
+        int "Max concurrent transactions"
+        default 10
+    config AN_TX_BUFFER
+        int "Anedya Tx Buffer Size(Bytes)"
+        default 1024
+    config AN_RX_BUFFER
+        int "Anedya Rx Buffer Size(Bytes)"
+        default 1024
+endmenu

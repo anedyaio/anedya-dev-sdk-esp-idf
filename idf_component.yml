@@ -1,4 +1,4 @@
-version: "0.0.3"
+version: "0.0.4"
 description: "Anedya SDK for ESP-IDF"
 url: "https://docs.anedya.io"
 repository: "https://github.com/anedyaio/anedya-dev-sdk-esp-idf"
