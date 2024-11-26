@@ -5,7 +5,6 @@
 
 #pragma once
 
-
 // Feature management
 #define ANEDYA_ENABLE_DEVICE_LOGS
 #define ANEDYA_ENABLE_COMMANDS
@@ -53,6 +52,10 @@ Depending on the method selected, corresponding implementation of APIs will be i
 
 #if defined(ANEDYA_CONNECTION_METHOD_MQTT) && defined(ANEDYA_CONNECTION_METHOD_HTTP)
     #error "ANEDYA_CONNECTION_METHOD_MQTT and ANEDYA_CONNECTION_METHOD_HTTP cannot be defined at the same time"
+#endif
+
+#if !defined(ANEDYA_CONNECTION_METHOD_MQTT) && !defined(ANEDYA_CONNECTION_METHOD_HTTP)
+    #error "ANEDYA CONFIG: Connection methods needs to be specified"
 #endif
 
 #if defined(ANEDYA_ENABLE_STATIC_ALLOCATION) && defined(ANEDYA_ENABLE_DYNAMIC_ALLOCATION)
