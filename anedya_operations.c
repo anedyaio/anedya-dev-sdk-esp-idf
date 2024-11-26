@@ -60,7 +60,7 @@ void _anedya_device_handle_generic_resp(anedya_client_t *client, anedya_txn_t *t
     if (!json)
     {
         printf("Error while parsing for txn: %d\n", txn->desc);
-        anedya_interface_std_out("Error while parsing JSON body : Generic Response");
+        _anedya_interface_std_out("Error while parsing JSON body : Generic Response");
         return;
     }
     //printf("parsed: txn: %d", txn->desc);
@@ -68,7 +68,7 @@ void _anedya_device_handle_generic_resp(anedya_client_t *client, anedya_txn_t *t
     json_t const *success = json_getProperty(json, "success");
     if (!success || JSON_BOOLEAN != json_getType(success))
     {
-        anedya_interface_std_out("Error, the success property is not found.");
+        _anedya_interface_std_out("Error, the success property is not found.");
     }
     bool s = json_getBoolean(success);
     if (s == true)
@@ -81,7 +81,7 @@ void _anedya_device_handle_generic_resp(anedya_client_t *client, anedya_txn_t *t
         json_t const *error = json_getProperty(json, "errCode");
         if (!error || JSON_INTEGER != json_getType(error))
         {
-            anedya_interface_std_out("Error, the error property is not found.");
+            _anedya_interface_std_out("Error, the error property is not found.");
         }
         int err = json_getInteger(error);
         txn->_op_err = err;

@@ -41,7 +41,7 @@ anedya_err_t anedya_op_ota_next_req(anedya_client_t *client, anedya_txn_t *txn)
     strcpy(topic, "$anedya/device/");
     strcat(topic, client->config->_device_id_str);
     strcat(topic, "/ota/next/json");
-    //printf("REQ: %s", txbuffer);
+    // printf("REQ: %s", txbuffer);
     err = anedya_interface_mqtt_publish(client->mqtt_client, topic, strlen(topic), txbuffer, strlen(txbuffer), 0, 0);
     if (err != ANEDYA_OK)
     {
@@ -59,14 +59,14 @@ void _anedya_op_ota_next_resp(anedya_client_t *client, anedya_txn_t *txn)
     json_t const *json = json_create(txn->_rxbody, mem, sizeof mem / sizeof *mem);
     if (!json)
     {
-        anedya_interface_std_out("Error while parsing JSON body:response handler OTA Next");
+        _anedya_interface_std_out("Error while parsing JSON body:response handler OTA Next");
         return;
     }
     // Check if success
     json_t const *success = json_getProperty(json, "success");
     if (!success || JSON_BOOLEAN != json_getType(success))
     {
-        anedya_interface_std_out("Error, the success property is not found.");
+        _anedya_interface_std_out("Error, the success property is not found.");
     }
     bool s = json_getBoolean(success);
     if (s == true)
@@ -79,7 +79,7 @@ void _anedya_op_ota_next_resp(anedya_client_t *client, anedya_txn_t *txn)
         json_t const *error = json_getProperty(json, "errCode");
         if (!error || JSON_INTEGER != json_getType(error))
         {
-            anedya_interface_std_out("Error, the error property is not found.");
+            _anedya_interface_std_out("Error, the error property is not found.");
         }
         int err = json_getInteger(error);
         txn->_op_err = err;
@@ -96,7 +96,7 @@ anedya_err_t _anedya_op_ota_next_parser(json_t *json, anedya_op_next_ota_resp_t 
     json_t const *da = json_getProperty(json, "deploymentAvailable");
     if (!da || JSON_BOOLEAN != json_getType(da))
     {
-        anedya_interface_std_out("Error, the success property is not found.");
+        _anedya_interface_std_out("Error, the success property is not found.");
         return ANEDYA_ERR_PARSE_ERROR;
     }
     bool dep_available = json_getBoolean(da);
@@ -111,7 +111,7 @@ anedya_err_t _anedya_op_ota_next_parser(json_t *json, anedya_op_next_ota_resp_t 
     json_t const *dpdata = json_getProperty(json, "data");
     if (!dpdata || JSON_OBJ != json_getType(dpdata))
     {
-        anedya_interface_std_out("Error, the data property is not found.");
+        _anedya_interface_std_out("Error, the data property is not found.");
         return ANEDYA_ERR_PARSE_ERROR;
     }
 
@@ -119,7 +119,7 @@ anedya_err_t _anedya_op_ota_next_parser(json_t *json, anedya_op_next_ota_resp_t 
     json_t const *dpID = json_getProperty(dpdata, "deploymentId");
     if (!dpID || JSON_TEXT != json_getType(dpID))
     {
-        anedya_interface_std_out("Error, the deploymentId property is not found.");
+        _anedya_interface_std_out("Error, the deploymentId property is not found.");
         return ANEDYA_ERR_PARSE_ERROR;
     }
     const char *deployment_id = json_getValue(dpID);
@@ -128,7 +128,7 @@ anedya_err_t _anedya_op_ota_next_parser(json_t *json, anedya_op_next_ota_resp_t 
     json_t const *aID = json_getProperty(dpdata, "assetId");
     if (!aID || JSON_TEXT != json_getType(aID))
     {
-        anedya_interface_std_out("Error, the deploymentId property is not found.");
+        _anedya_interface_std_out("Error, the deploymentId property is not found.");
         return ANEDYA_ERR_PARSE_ERROR;
     }
     const char *asset_id = json_getValue(aID);
@@ -137,7 +137,7 @@ anedya_err_t _anedya_op_ota_next_parser(json_t *json, anedya_op_next_ota_resp_t 
     json_t const *aidentifier = json_getProperty(dpdata, "assetIdentifier");
     if (!aidentifier || JSON_TEXT != json_getType(aidentifier))
     {
-        anedya_interface_std_out("Error, the deploymentId property is not found.");
+        _anedya_interface_std_out("Error, the deploymentId property is not found.");
         return ANEDYA_ERR_PARSE_ERROR;
     }
     const char *asset_identifier = json_getValue(aidentifier);
@@ -148,7 +148,7 @@ anedya_err_t _anedya_op_ota_next_parser(json_t *json, anedya_op_next_ota_resp_t 
     json_t const *aversion = json_getProperty(dpdata, "assetVersion");
     if (!aversion || JSON_TEXT != json_getType(aversion))
     {
-        anedya_interface_std_out("Error, the assetVersion property is not found.");
+        _anedya_interface_std_out("Error, the assetVersion property is not found.");
         return ANEDYA_ERR_PARSE_ERROR;
     }
     const char *asset_version = json_getValue(aversion);
@@ -159,7 +159,7 @@ anedya_err_t _anedya_op_ota_next_parser(json_t *json, anedya_op_next_ota_resp_t 
     json_t const *asigned = json_getProperty(dpdata, "assetSigned");
     if (!asigned || JSON_BOOLEAN != json_getType(asigned))
     {
-        anedya_interface_std_out("Error, the assetSigned property is not found.");
+        _anedya_interface_std_out("Error, the assetSigned property is not found.");
         return ANEDYA_ERR_PARSE_ERROR;
     }
     const bool asset_signed = json_getBoolean(asigned);
@@ -172,7 +172,7 @@ anedya_err_t _anedya_op_ota_next_parser(json_t *json, anedya_op_next_ota_resp_t 
         json_t const *asign = json_getProperty(dpdata, "assetSignature");
         if (!asign || JSON_TEXT != json_getType(asign))
         {
-            anedya_interface_std_out("Error, the assetSignature property is not found.");
+            _anedya_interface_std_out("Error, the assetSignature property is not found.");
             return ANEDYA_ERR_PARSE_ERROR;
         }
         const char *asset_signature = json_getValue(asign);
@@ -214,7 +214,7 @@ anedya_err_t _anedya_op_ota_next_parser(json_t *json, anedya_op_next_ota_resp_t 
     json_t const *achecksum = json_getProperty(dpdata, "assetChecksum");
     if (!achecksum || JSON_TEXT != json_getType(achecksum))
     {
-        anedya_interface_std_out("Error, the assetChecksum property is not found.");
+        _anedya_interface_std_out("Error, the assetChecksum property is not found.");
         return ANEDYA_ERR_PARSE_ERROR;
     }
     const char *asset_checksum = json_getValue(achecksum);
@@ -225,7 +225,7 @@ anedya_err_t _anedya_op_ota_next_parser(json_t *json, anedya_op_next_ota_resp_t 
     json_t const *asize = json_getProperty(dpdata, "assetSize");
     if (!asize || JSON_INTEGER != json_getType(asize))
     {
-        anedya_interface_std_out("Error, the assetSize property is not found.");
+        _anedya_interface_std_out("Error, the assetSize property is not found.");
         return ANEDYA_ERR_PARSE_ERROR;
     }
     int asset_size = json_getInteger(asize);
@@ -233,13 +233,35 @@ anedya_err_t _anedya_op_ota_next_parser(json_t *json, anedya_op_next_ota_resp_t 
 
     // Parse asset URL
     json_t const *aurl = json_getProperty(dpdata, "asseturl");
-    if (!aurl || JSON_TEXT  != json_getType(aurl))
+    if (!aurl || JSON_TEXT != json_getType(aurl))
     {
-        anedya_interface_std_out("Error, the asseturl property is not found.");
+        _anedya_interface_std_out("Error, the asseturl property is not found.");
         return ANEDYA_ERR_PARSE_ERROR;
     }
     const char *asset_url = json_getValue(aurl);
+    bool firstChar = 0;
     strcpy(resp->asset.asset_url, asset_url);
+    for (int i = 0; i < strlen(resp->asset.asset_url) + 1; i++)
+    {
+        char c;
+        if (resp->asset.asset_url[i] == '?')
+        {
+            if (firstChar)
+            {
+                c = '&';
+            }
+            else
+            {
+                firstChar = 1;
+                c = resp->asset.asset_url[i];
+            }
+        }
+        else
+        {
+            c = resp->asset.asset_url[i];
+        }
+        resp->asset.asset_url[i] = c;
+    }
     resp->asset.asset_url_len = strlen(resp->asset.asset_url);
 
     // All data has been parsed now set the data in response structure.
@@ -292,7 +314,7 @@ anedya_err_t anedya_op_ota_update_status_req(anedya_client_t *client, anedya_txn
     p = anedya_json_end(p, &marker);
     // Body is ready now publish it to the MQTT
     char topic[100];
-    //printf("Req: %s", txbuffer);
+    // printf("Req: %s", txbuffer);
     strcpy(topic, "$anedya/device/");
     strcat(topic, client->config->_device_id_str);
     strcat(topic, "/ota/updateStatus/json");

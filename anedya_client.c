@@ -34,7 +34,7 @@ anedya_err_t anedya_client_init(anedya_config_t *config, anedya_client_t *client
     char url[100];
     sprintf(url, "mqtt.%s.anedya.io", config->region);
     strcpy(client->broker_url, url);
-    anedya_mqtt_client_handle_t handle = anedya_interface_mqtt_init(client, client->broker_url, client->config->_device_id_str, client->config->connection_key);
+    anedya_mqtt_client_handle_t handle = _anedya_interface_mqtt_init(client, client->broker_url, client->config->_device_id_str, client->config->connection_key);
     client->mqtt_client = handle;
     client->_message_handler = _anedya_message_handler;
     client->_anedya_on_connect_handler = _anedya_on_connect_handler;
@@ -173,7 +173,7 @@ anedya_err_t _anedya_txn_store_release_slot(anedya_txn_store_t *store, anedya_tx
 void _anedya_message_handler(anedya_client_t *cl, char *topic, int topic_len, char *payload, int payload_len)
 {
     // Just received the message, now determine for which topic this message is delivered
-    //anedya_interface_std_out("Processing message");
+    //_anedya_interface_std_out("Processing message");
     //printf("Matching from: %.*s Len: %d\r\n", topic_len, topic, topic_len);
     int i = 0;
     for (i = 0; i < 4; i++)
@@ -181,7 +181,7 @@ void _anedya_message_handler(anedya_client_t *cl, char *topic, int topic_len, ch
         //printf("Matching with: %s Len: %d\n", cl->_message_topics[i], strlen(cl->_message_topics[i]));
         if (strncmp(topic, cl->_message_topics[i], strlen(cl->_message_topics[i]) - 1) == 0)
         {
-            //anedya_interface_std_out("Topic matched");
+            //_anedya_interface_std_out("Topic matched");
             //printf("Matching from: %.*s Len: %d\r\n", topic_len, topic, topic_len);
             break;
         }
@@ -259,13 +259,13 @@ void _anedya_handle_txn_response(anedya_client_t *cl, char *payload, int payload
     json_t const *json = json_create(str, mem, sizeof mem / sizeof *mem);
     if (!json)
     {
-        anedya_interface_std_out("Error while parsing JSON body in TXN handler");
+        _anedya_interface_std_out("Error while parsing JSON body in TXN handler");
     }
     // Get the txn id
     json_t const *txn_id = json_getProperty(json, "reqId");
     if (!txn_id || JSON_TEXT != json_getType(txn_id))
     {
-        anedya_interface_std_out("Error, the first name property is not found.");
+        _anedya_interface_std_out("Error, the first name property is not found.");
     }
     char const *txn_index = json_getValue(txn_id);
     int index = atoi(txn_index);
@@ -273,7 +273,7 @@ void _anedya_handle_txn_response(anedya_client_t *cl, char *payload, int payload
     //printf("Txn id: %d\r\n", index);
     if (index == 0)
     {
-        anedya_interface_std_out("Error, invalid txn id");
+        _anedya_interface_std_out("Error, invalid txn id");
     }
     // Search for the txn in the txn store
     anedya_txn_t *txn = cl->txn_store.txns[index - 1];

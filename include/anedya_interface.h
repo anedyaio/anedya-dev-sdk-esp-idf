@@ -27,7 +27,7 @@ extern "C" {
 
 #ifdef ANEDYA_ENABLE_DEBUG_OUTPUT
 /** @brief: Defines an interface for providing output to serial console or any other terminal on the hardware*/
-void anedya_interface_std_out(const char* str);
+void _anedya_interface_std_out(const char* str);
 #endif
 
 #ifdef ANEDYA_ENABLE_DYNAMIC_ALLOCATION
@@ -37,13 +37,13 @@ void* anedya_interface_free(void *ptr);
 #endif
 
 /** @brief: An interface used internally to sleep the code for milliseconds provided.*/
-void anedya_interface_sleep_ms(size_t ms);
+void _anedya_interface_sleep_ms(size_t ms);
 
 /** @brief: An interface used internally to get the current system time in milliseconds.*/
-uint64_t anedya_interface_get_time_ms();
+uint64_t _anedya_interface_get_time_ms();
 
 /** @brief: An interface used internally to set the current system time in milliseconds.*/
-void anedya_interface_set_time_ms(uint64_t time);
+void _anedya_interface_set_time_ms(uint64_t time);
 
 //==================================================================================
 // CONNECTION MANAGEMENT
@@ -66,7 +66,7 @@ supported by the hardware ecosystem.
     /**
      * @brief Initialize the MQTT client handle by creating a client.
     */
-    anedya_mqtt_client_handle_t anedya_interface_mqtt_init(anedya_client_t *parent, char * broker, const char *devid,const char *secret);
+    anedya_mqtt_client_handle_t _anedya_interface_mqtt_init(anedya_client_t *parent, char * broker, const char *devid,const char *secret);
 
     /** @brief: This method gets called whenever a connection to the broker needs to be made.
      * This method should implement following behaviour:

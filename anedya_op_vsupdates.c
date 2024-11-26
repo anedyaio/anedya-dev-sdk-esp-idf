@@ -10,12 +10,12 @@ uint8_t _anedya_parse_valuestore_type(char *payload, size_t payload_len)
     json_t const *json = json_create(temp, mem, sizeof mem / sizeof *mem);
     if (!json)
     {
-        anedya_interface_std_out("Error while parsing JSON body: Valuestore type");
+        _anedya_interface_std_out("Error while parsing JSON body: Valuestore type");
     }
     json_t const *type = json_getProperty(json, "type");
     if (!type || JSON_TEXT != json_getType(type))
     {
-        anedya_interface_std_out("Error, the type property is not found.");
+        _anedya_interface_std_out("Error, the type property is not found.");
     }
     const char *t = json_getValue(type);
 
@@ -49,7 +49,7 @@ anedya_err_t _anedya_parse_valuestore_float(char *payload, size_t payload_len, a
     json_t const *json = json_create(payload, mem, sizeof mem / sizeof *mem);
     if (!json)
     {
-        anedya_interface_std_out("Error while parsing JSON body: Valuestore float");
+        _anedya_interface_std_out("Error while parsing JSON body: Valuestore float");
         return ANEDYA_ERR;
     }
 
@@ -59,7 +59,7 @@ anedya_err_t _anedya_parse_valuestore_float(char *payload, size_t payload_len, a
     json_t const *ns = json_getProperty(json, "namespace");
     if (!ns || JSON_OBJ != json_getType(ns))
     {
-        anedya_interface_std_out("Error, the namespace property is not found.");
+        _anedya_interface_std_out("Error, the namespace property is not found.");
         return ANEDYA_ERR_PARSE_ERROR;
     }
 
@@ -67,7 +67,7 @@ anedya_err_t _anedya_parse_valuestore_float(char *payload, size_t payload_len, a
     json_t const *scope = json_getProperty(ns, "scope");
     if (!scope || JSON_TEXT != json_getType(scope))
     {
-        anedya_interface_std_out("Error, the scope property is not found.");
+        _anedya_interface_std_out("Error, the scope property is not found.");
     }
     const char *s = json_getValue(scope);
 
@@ -81,7 +81,7 @@ anedya_err_t _anedya_parse_valuestore_float(char *payload, size_t payload_len, a
     json_t const *key = json_getProperty(json, "key");
     if (!key || JSON_TEXT != json_getType(key))
     {
-        anedya_interface_std_out("Error, the key property is not found.");
+        _anedya_interface_std_out("Error, the key property is not found.");
     }
     const char *k = json_getValue(key);
     strcpy(obj->key, k);
@@ -92,7 +92,7 @@ anedya_err_t _anedya_parse_valuestore_float(char *payload, size_t payload_len, a
     printf("Property: %d", val_type);
     if (!value || (JSON_REAL != val_type && JSON_INTEGER != val_type)) 
     {
-        anedya_interface_std_out("Error, the value property is not found.");
+        _anedya_interface_std_out("Error, the value property is not found.");
         return ANEDYA_ERR;
     }
     if(val_type == JSON_REAL)
@@ -108,7 +108,7 @@ anedya_err_t _anedya_parse_valuestore_float(char *payload, size_t payload_len, a
     json_t const *modified = json_getProperty(json, "modified");
     if (!modified || JSON_INTEGER != json_getType(modified))
     {
-        anedya_interface_std_out("Error, the modified property is not found.");
+        _anedya_interface_std_out("Error, the modified property is not found.");
     }
     obj->modified = json_getInteger(modified);
     return ANEDYA_OK;

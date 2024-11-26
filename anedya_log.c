@@ -6,6 +6,6 @@
 void anedya_debug_log(const char *log) {
     // Call interface output API
     #ifdef ANEDYA_ENABLE_DEBUG_OUTPUT
-        anedya_interface_std_out(log);
+        _anedya_interface_std_out(log);
     #endif
 }

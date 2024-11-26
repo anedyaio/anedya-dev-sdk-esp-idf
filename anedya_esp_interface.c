@@ -14,12 +14,12 @@ static const char *TAG = "ANEDYA_ESPI";
 esp_mqtt_client_handle_t client;
 bool anedya_espi_mqtt_connected = false;
 
-void anedya_interface_sleep_ms(size_t ms)
+void _anedya_interface_sleep_ms(size_t ms)
 {
     vTaskDelay(ms / portTICK_PERIOD_MS);
 }
 
-uint64_t anedya_interface_get_time_ms()
+uint64_t _anedya_interface_get_time_ms()
 {
     struct timeval ts;
     gettimeofday(&ts, NULL);
@@ -92,7 +92,7 @@ static void anedya_espi_mqtt_event_handler(void *handler_args, esp_event_base_t 
 
 #ifdef ANEDYA_CONNECTION_METHOD_MQTT
 
-anedya_mqtt_client_handle_t anedya_interface_mqtt_init(anedya_client_t *parent, char *broker, const char *devid, const char *secret)
+anedya_mqtt_client_handle_t _anedya_interface_mqtt_init(anedya_client_t *parent, char *broker, const char *devid, const char *secret)
 {
     esp_mqtt_client_config_t mqtt_cfg = {
         .network.disable_auto_reconnect = false,
@@ -207,7 +207,7 @@ anedya_err_t anedya_set_message_callback(anedya_mqtt_client_handle_t anclient, a
     return ANEDYA_OK;
 }
 
-void anedya_interface_std_out(const char *str)
+void _anedya_interface_std_out(const char *str)
 {
     ESP_LOGI("ANEDYA_ESPI", "%s", str);
 }
