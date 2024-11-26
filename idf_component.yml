@@ -1,7 +1,7 @@
 version: "0.0.2"
 description: "Anedya SDK for ESP-IDF"
 url: "https://docs.anedya.io"
-repository: "https://github.com/anedyaio/anedya-dev-esp-idf"
+repository: "https://github.com/anedyaio/anedya-dev-sdk-esp-idf"
 license: Apache-2.0
 dependencies:
   idf: ">=5.0"
