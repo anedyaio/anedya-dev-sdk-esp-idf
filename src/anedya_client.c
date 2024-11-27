@@ -134,7 +134,7 @@ anedya_err_t _anedya_txn_store_aquire_slot(anedya_txn_store_t *store, anedya_txn
             // TXN has timed out. Free the aquired slot
             store->txn_slot_free[i] = 1;
             store->txns[i] = NULL;
-            printf("Slot timed out: %d", i + 1);
+            // printf("Slot timed out: %d", i + 1);
         }
         if (store->txn_slot_free[i] == 1)
         {

@@ -61,7 +61,7 @@ anedya_err_t anedya_config_init(anedya_config_t *config, anedya_device_id_t devI
             devId[10], devId[11],
             devId[12], devId[13],
             devId[14], devId[15]);
-    printf("UUID: %s\n", uuid_str);
+    // printf("UUID: %s\n", uuid_str);
     memcpy(config->_device_id_str, uuid_str, 37);
     config->event_handler = NULL;
     config->on_connect = NULL;
