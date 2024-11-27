@@ -1,0 +1,6 @@
+dependencies:
+  ## Required IDF version
+  idf: ">=5.0"
+  anedya/anedya-esp:
+    version: "^0.0.6"
+    override_path: "../../../"
