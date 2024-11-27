@@ -62,8 +62,8 @@ static void anedya_espi_mqtt_event_handler(void *handler_args, esp_event_base_t 
         break;
     case MQTT_EVENT_DATA:
         ESP_LOGI(TAG, "MQTT_EVENT_DATA");
-        printf("TOPIC=%.*s\r\n", event->topic_len, event->topic);
-        printf("DATA=%.*s\r\n", event->data_len, event->data);
+        //printf("TOPIC=%.*s\r\n", event->topic_len, event->topic);
+        //printf("DATA=%.*s\r\n", event->data_len, event->data);
         cl->_message_handler(cl, event->topic, event->topic_len, event->data, event->data_len);
         break;
     case MQTT_EVENT_ERROR:

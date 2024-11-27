@@ -89,7 +89,7 @@ anedya_err_t _anedya_parse_valuestore_float(char *payload, size_t payload_len, a
     // Parse Value
     json_t const *value = json_getProperty(json, "value");
     jsonType_t val_type = json_getType(value);
-    printf("Property: %d", val_type);
+    //printf("Property: %d", val_type);
     if (!value || (JSON_REAL != val_type && JSON_INTEGER != val_type)) 
     {
         _anedya_interface_std_out("Error, the value property is not found.");
