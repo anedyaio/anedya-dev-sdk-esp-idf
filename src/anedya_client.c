@@ -3,6 +3,7 @@
 #include "anedya_certs.h"
 #include "anedya_json_parse.h"
 #include "anedya_operations.h"
+#include "anedya_op_commands.h"
 #include "string.h"
 #include "sys/time.h" // TODO: Remove time header dependency
 
@@ -330,6 +331,12 @@ void _anedya_handle_event(anedya_client_t *cl, char *payload, int payload_len, u
     switch(topic) {
         case 2:
             // Handle command
+            anedya_command_obj_t cmd;
+            _anedya_parse_inbound_command(buffer, buffer_len, &cmd);
+            if(cl->config->event_handler != NULL)
+            {
+                cl->config->event_handler(cl, ANEDYA_EVENT_COMMAND, &cmd);
+            }
             break;
         case 3:
             // Handle valuestore update

@@ -10,6 +10,8 @@
 #include "anedya_ota.h"
 #include "anedya_op_vs.h"
 #include "anedya_op_submitevent.h"
+#include "anedya_op_submitdata.h"
+#include "anedya_op_commands.h"
 #include "string.h"
 
 // Anedya Operation codes
@@ -25,6 +27,7 @@
 // Anedya Events
 #define ANEDYA_EVENT_VS_UPDATE_FLOAT 1
 #define ANEDYA_EVENT_VS_UPDATE_BOOL 2
+#define ANEDYA_EVENT_COMMAND 3
 
 // Anedya Operations Error Codes
 #define ANEDYA_OP_ERR_RESP_BUFFER_OVERFLOW -1
@@ -144,6 +147,30 @@ anedya_err_t anedya_op_ota_update_status_req(anedya_client_t *client, anedya_txn
  *          Ensure the appropriate allocation macros are defined.
  */
 anedya_err_t anedya_op_submit_float_req(anedya_client_t *client, anedya_txn_t *txn, const char *variable_identifier, float value, uint64_t timestamp_ms);
+
+
+/**
+ * @brief Submit a geo-coordinate data value to the server.
+ *
+ * This function sends a floating-point value with a specific variable identifier and timestamp
+ * to the server. It initializes a transaction, generates a JSON payload for the data submission,
+ * and publishes it to the server if the client is connected.
+ *
+ * @param[in] client Pointer to the `anedya_client_t` structure representing the client.
+ * @param[out] txn Pointer to an `anedya_txn_t` structure for the data submission transaction.
+ * @param[in] variable_identifier A string representing the unique identifier for the variable.
+ * @param[in] value Geo-coordinate value to be submited
+ * @param[in] timestamp_ms Timestamp of the data point in milliseconds.
+ *
+ * @retval - `ANEDYA_OK` if the data is successfully submitted.
+ * @retval - `ANEDYA_ERR_NOT_CONNECTED` if the client is not connected to the server.
+ * @retval - Error code if transaction registration or message publishing fails.
+ *
+ * @note Ensure the client is connected before calling this function.
+ * @warning This function uses static or dynamic allocation based on configuration macros.
+ *          Ensure the appropriate allocation macros are defined.
+ */
+anedya_err_t anedya_op_submit_geo_req(anedya_client_t *client, anedya_txn_t *txn, const char *variable_identifier, anedya_geo_data_t *value, uint64_t timestamp_ms);
 
 /**
  * @brief Set a floating-point value in the valuestore at anedya.

@@ -2,6 +2,7 @@
 #include "anedya_sdk_config.h"
 #include "anedya_json_builder.h"
 #include "anedya_json_parse.h"
+#include "anedya_op_commands.h"
 #include <string.h>
 #include <stdio.h>
 
