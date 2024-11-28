@@ -11,6 +11,7 @@
 #include "anedya_op_vs.h"
 #include "anedya_op_submitevent.h"
 #include "anedya_op_submitdata.h"
+#include "anedya_op_commands.h"
 #include "string.h"
 
 // Anedya Operation codes
