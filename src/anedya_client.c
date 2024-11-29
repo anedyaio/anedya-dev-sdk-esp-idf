@@ -310,6 +310,12 @@ void _anedya_handle_txn_response(anedya_client_t *cl, char *payload, int payload
     case ANEDYA_OP_SUBMIT_EVENT:
         _anedya_device_handle_generic_resp(cl, txn);
         break;
+    case ANEDYA_OP_CMD_UPDATE_STATUS:
+        _anedya_device_handle_generic_resp(cl, txn);
+        break;
+    case ANEDYA_OP_SUBMIT_LOG:
+        _anedya_device_handle_generic_resp(cl, txn);
+        break;
     default:
         // Do nothing
         break;
@@ -332,6 +338,7 @@ void _anedya_handle_event(anedya_client_t *cl, char *payload, int payload_len, u
         case 2:
             // Handle command
             anedya_command_obj_t cmd;
+            cmd.cmd_data_type= ANEDYA_DATATYPE_UNKNOWN;
             _anedya_parse_inbound_command(buffer, buffer_len, &cmd);
             if(cl->config->event_handler != NULL)
             {

@@ -137,7 +137,7 @@ static const char decoding_table[] = {
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 
-void _anedya_base64_encode(unsigned char *data, unsigned char *output) {
+unsigned int _anedya_base64_encode(unsigned char *data, unsigned char *output) {
     
     unsigned int input_length = strlen((const char*)data);
     unsigned int output_length = 4 * ((input_length + 2) / 3);
@@ -158,6 +158,8 @@ void _anedya_base64_encode(unsigned char *data, unsigned char *output) {
 
     for (int i = 0; i < mod_table[input_length % 3]; i++)
         output[output_length - 1 - i] = '=';
+
+    return output_length;
 }
 
 unsigned int _anedya_base64_decode(unsigned char *encoded, char *output) {
