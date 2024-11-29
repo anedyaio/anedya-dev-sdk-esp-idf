@@ -51,8 +51,9 @@ extern "C"
     typedef void (*anedya_event_handler_t)(anedya_client_t *cl, anedya_event_t event_type, void *event_data);
 #endif
 
-#define ANEDYA_DATATYPE_STRING 0
-#define ANEDYA_DATATYPE_BINARY 1
+#define ANEDYA_DATATYPE_UNKNOWN 0
+#define ANEDYA_DATATYPE_STRING 1
+#define ANEDYA_DATATYPE_BINARY 2
 
 #ifdef __cplusplus
 }

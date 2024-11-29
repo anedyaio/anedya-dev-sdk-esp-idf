@@ -64,6 +64,6 @@ anedya_err_t anedya_req_bind_device_unmarshal(anedya_req_bind_device_t *req, cha
 anedya_err_t _anedya_uuid_parse(const char *in, anedya_uuid_t uuid);
 void _anedya_uuid_marshal(const anedya_uuid_t uuid, char *out);
 int _anedya_strcmp(const char* x, const char* y);
-void _anedya_base64_encode(unsigned char *data, unsigned char *output);
+unsigned int _anedya_base64_encode(unsigned char *data, unsigned char *output);
 unsigned int _anedya_base64_decode(unsigned char* encoded, char *data);
 #endif
