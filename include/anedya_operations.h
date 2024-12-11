@@ -258,7 +258,7 @@ anedya_err_t anedya_op_submit_event(anedya_client_t *client, anedya_txn_t *txn, 
 anedya_err_t anedya_op_cmd_status_update(anedya_client_t *client, anedya_txn_t *txn, anedya_req_cmd_status_update_t *req_config);
 
 
-anedya_err_t anedya_op_submit_log(anedya_client_t *client, anedya_txn_t *txn, char *log, unsigned int log_len, unsigned long timestamp_ms);
+anedya_err_t anedya_op_submit_log(anedya_client_t *client, anedya_txn_t *txn, char *log, unsigned int log_len, unsigned long long timestamp_ms);
 
 // Reponse handlers
 void _anedya_device_handle_generic_resp(anedya_client_t *client, anedya_txn_t *txn);

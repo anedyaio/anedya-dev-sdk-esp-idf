@@ -1,6 +1,6 @@
 #include "anedya_operations.h"
 
-anedya_err_t anedya_op_submit_log(anedya_client_t *client, anedya_txn_t *txn, char *log, unsigned int log_len, unsigned long timestamp_ms) {
+anedya_err_t anedya_op_submit_log(anedya_client_t *client, anedya_txn_t *txn, char *log, unsigned int log_len, unsigned long long timestamp_ms) {
     // First check if client is already connected or not
     if (client->is_connected == 0)
     {
@@ -29,7 +29,7 @@ anedya_err_t anedya_op_submit_log(anedya_client_t *client, anedya_txn_t *txn, ch
     p = anedya_json_arrOpen(p, "data", &marker);
     p = anedya_json_objOpen(p, NULL, &marker);
     p = anedya_json_nstr(p, "log", log, log_len, &marker);
-    p = anedya_json_ulong(p, "timestamp", timestamp_ms, &marker);
+    p = anedya_json_verylong(p, "timestamp", timestamp_ms, &marker);
     p = anedya_json_objClose(p, &marker);
     p = anedya_json_arrClose(p, &marker);
     p = anedya_json_objClose(p, &marker);
