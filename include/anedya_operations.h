@@ -175,6 +175,32 @@ anedya_err_t anedya_op_submit_float_req(anedya_client_t *client, anedya_txn_t *t
 anedya_err_t anedya_op_submit_geo_req(anedya_client_t *client, anedya_txn_t *txn, const char *variable_identifier, anedya_geo_data_t *value, uint64_t timestamp_ms);
 
 /**
+ * @brief Set a string value in the valuestore at anedya.
+ *
+ * This function allows setting a string value associated with a specific key in the
+ * device's valuestore. It initializes a transaction, creates a JSON payload with the provided
+ * key and value, and publishes it to the server if the client is connected.
+ *
+ * @param[in] client Pointer to the `anedya_client_t` structure representing the client.
+ * @param[out] txn Pointer to an `anedya_txn_t` structure for the valuestore transaction.
+ * @param[in] key A string representing the unique identifier (key) for the value in the valuestore.
+ * @param[in] value A string value to be stored in the valuestore.
+ * @param[in] value_len Length of the string value.
+ *
+ * @retval - `ANEDYA_OK` if the valuestore entry is successfully set.
+ * @retval - `ANEDYA_ERR_NOT_CONNECTED` if the client is not connected to the server.
+ * @retval - `ANEDYA_ERR_INVALID_VALUE_LEN` if the provided value length is invalid.
+ * @retval - `ANEDYA_ERR_VALUE_TOO_LONG` if the provided value is more than 1000 characters.
+ * @retval - Error code if transaction registration or message publishing fails.
+ *
+ * @note Ensure the client is connected before calling this function.
+ * @warning This function uses static or dynamic allocation based on configuration macros.
+ *          Ensure the appropriate allocation macros are defined.
+ */
+
+anedya_err_t anedya_op_valuestore_set_string(anedya_client_t *client, anedya_txn_t *txn, const char *key, const char *value,size_t value_len);
+
+/**
  * @brief Set a floating-point value in the valuestore at anedya.
  *
  * This function allows setting a floating-point value associated with a specific key in the
