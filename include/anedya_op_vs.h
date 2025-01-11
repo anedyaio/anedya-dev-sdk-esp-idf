@@ -9,7 +9,7 @@
 #define ANEDYA_VALUESTORE_TYPE_NONE 0
 #define ANEDYA_VALUESTORE_TYPE_FLOAT 1
 #define ANEDYA_VALUESTORE_TYPE_BOOL 2
-#define ANEDYA_VALUESTORE_TYPE_STR 3
+#define ANEDYA_VALUESTORE_TYPE_STRING 3
 #define ANEDYA_VALUESTORE_TYPE_BIN 4
 
 typedef struct {
@@ -37,7 +37,7 @@ typedef struct {
     char *value;
     size_t value_len;
     int64_t modified;
-} anedya_valustore_obj_str_t;
+} anedya_valuestore_obj_string_t;
 
 typedef struct {
     anedya_valuestore_ns_t ns;
@@ -49,3 +49,4 @@ typedef struct {
 
 uint8_t _anedya_parse_valuestore_type(char *payload, size_t payload_len);
 anedya_err_t _anedya_parse_valuestore_float(char *payload, size_t payload_len, anedya_valustore_obj_float_t *obj);
+anedya_err_t _anedya_parse_valuestore_string(char *payload, size_t payload_len, anedya_valuestore_obj_string_t *obj);
