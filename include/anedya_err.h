@@ -36,6 +36,9 @@ extern "C"
 #define ANEDYA_ERR_INVALID_DATATYPE 12
 #define ANEDYA_ERR_INVALID_DATA 13
 
+#define ANEDYA_ERR_VALUE_TOO_LONG 14
+#define ANEDYA_ERR_VALUE_MISMATCH_LEN 15
+
 #ifdef ___cpluplus
 }
 #endif
