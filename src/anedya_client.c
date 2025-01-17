@@ -367,14 +367,23 @@ void _anedya_handle_event(anedya_client_t *cl, char *payload, int payload_len, u
                     // Call the event handler with data
                     if(cl->config->event_handler != NULL)
                     {
-                        cl->config->event_handler(cl, ANEDTA_EVENT_VS_UPDATE_STRING, &str_data);
+                        cl->config->event_handler(cl, ANEDYA_EVENT_VS_UPDATE_STRING, &str_data);
                     }
                     break;
                 case ANEDYA_VALUESTORE_TYPE_BOOL:
                     //event_data = _anedya_parse_valuestore_json(payload, payload_len);
                     break;
                 case ANEDYA_VALUESTORE_TYPE_BIN:
-                    // Handle binary data
+                    //event_data = _anedya_parse_valuestore_json(payload, payload_len);
+                    anedya_valustore_obj_bin_t bin_data;
+                    _anedya_parse_valuestore_bin(buffer, buffer_len, &bin_data);
+                    // Call the event handler with data
+                    if(cl->config->event_handler != NULL)
+                    {
+                        cl->config->event_handler(cl, ANEDYA_EVENT_VS_UPDATE_BIN, &bin_data);
+                    }
+                    break;
+                default:
                     break;
             }
             break;

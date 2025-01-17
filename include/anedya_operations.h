@@ -31,6 +31,7 @@
 #define ANEDYA_EVENT_VS_UPDATE_BOOL 2
 #define ANEDYA_EVENT_COMMAND 3
 #define ANEDYA_EVENT_VS_UPDATE_STRING 4
+#define ANEDYA_EVENT_VS_UPDATE_BIN 5
 
 // Anedya Operations Error Codes
 #define ANEDYA_OP_ERR_RESP_BUFFER_OVERFLOW -1
@@ -151,7 +152,6 @@ anedya_err_t anedya_op_ota_update_status_req(anedya_client_t *client, anedya_txn
  */
 anedya_err_t anedya_op_submit_float_req(anedya_client_t *client, anedya_txn_t *txn, const char *variable_identifier, float value, uint64_t timestamp_ms);
 
-
 /**
  * @brief Submit a geo-coordinate data value to the server.
  *
@@ -198,7 +198,7 @@ anedya_err_t anedya_op_submit_geo_req(anedya_client_t *client, anedya_txn_t *txn
  * @warning This function uses static or dynamic allocation based on configuration macros.
  *          Ensure the appropriate allocation macros are defined.
  */
-anedya_err_t anedya_op_valuestore_set_string(anedya_client_t *client, anedya_txn_t *txn, const char *key, const char *value,size_t value_len);
+anedya_err_t anedya_op_valuestore_set_string(anedya_client_t *client, anedya_txn_t *txn, const char *key, const char *value, size_t value_len);
 
 /**
  * @brief Set a floating-point value in the valuestore at anedya.
@@ -248,7 +248,7 @@ anedya_err_t anedya_op_valuestore_set_bool(anedya_client_t *client, anedya_txn_t
  * @brief Set a binary value in the valuestore at anedya.
  *
  * This function allows setting a binary value encoded in Base64 associated with a specific key
- * in the device's valuestore. It initializes a transaction, creates a JSON payload with the 
+ * in the device's valuestore. It initializes a transaction, creates a JSON payload with the
  * provided key and value, and publishes it to the server if the client is connected.
  *
  * @param[in] client Pointer to the `anedya_client_t` structure representing the client.
@@ -289,7 +289,6 @@ anedya_err_t anedya_op_valuestore_set_bin(anedya_client_t *client, anedya_txn_t 
  */
 anedya_err_t anedya_op_submit_event(anedya_client_t *client, anedya_txn_t *txn, anedya_req_submit_event_t *req_config);
 
-
 /**
  * @brief Update command status
  *
@@ -308,7 +307,6 @@ anedya_err_t anedya_op_submit_event(anedya_client_t *client, anedya_txn_t *txn, 
  *          Ensure the appropriate allocation macros are defined.
  */
 anedya_err_t anedya_op_cmd_status_update(anedya_client_t *client, anedya_txn_t *txn, anedya_req_cmd_status_update_t *req_config);
-
 
 anedya_err_t anedya_op_submit_log(anedya_client_t *client, anedya_txn_t *txn, char *log, unsigned int log_len, unsigned long long timestamp_ms);
 
