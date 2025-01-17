@@ -30,7 +30,7 @@
 #define ANEDYA_EVENT_VS_UPDATE_FLOAT 1
 #define ANEDYA_EVENT_VS_UPDATE_BOOL 2
 #define ANEDYA_EVENT_COMMAND 3
-#define ANEDTA_EVENT_VS_UPDATE_STRING 4
+#define ANEDYA_EVENT_VS_UPDATE_STRING 4
 
 // Anedya Operations Error Codes
 #define ANEDYA_OP_ERR_RESP_BUFFER_OVERFLOW -1
@@ -175,7 +175,29 @@ anedya_err_t anedya_op_submit_float_req(anedya_client_t *client, anedya_txn_t *t
  */
 anedya_err_t anedya_op_submit_geo_req(anedya_client_t *client, anedya_txn_t *txn, const char *variable_identifier, anedya_geo_data_t *value, uint64_t timestamp_ms);
 
-
+/**
+ * @brief Set a string value in the valuestore at anedya.
+ *
+ * This function allows setting a string value associated with a specific key in the
+ * device's valuestore. It initializes a transaction, creates a JSON payload with the provided
+ * key and value, and publishes it to the server if the client is connected.
+ *
+ * @param[in] client Pointer to the `anedya_client_t` structure representing the client.
+ * @param[out] txn Pointer to an `anedya_txn_t` structure for the valuestore transaction.
+ * @param[in] key A string representing the unique identifier (key) for the value in the valuestore.
+ * @param[in] value The string value to be stored in the valuestore.
+ * @param[in] value_len The length of the string value.
+ *
+ * @retval - `ANEDYA_OK` if the valuestore entry is successfully set.
+ * @retval - `ANEDYA_ERR_NOT_CONNECTED` if the client is not connected to the server.
+ * @retval - `ANEDYA_ERR_VALUE_TOO_LONG` if the string value is longer than 1000 bytes.
+ * @retval - `ANEDYA_ERR_VALUE_MISMATCH_LEN` if the string value length does not match the provided length.
+ * @retval - Error code if transaction registration or message publishing fails.
+ *
+ * @note Ensure the client is connected before calling this function.
+ * @warning This function uses static or dynamic allocation based on configuration macros.
+ *          Ensure the appropriate allocation macros are defined.
+ */
 anedya_err_t anedya_op_valuestore_set_string(anedya_client_t *client, anedya_txn_t *txn, const char *key, const char *value,size_t value_len);
 
 /**
@@ -221,6 +243,32 @@ anedya_err_t anedya_op_valuestore_set_float(anedya_client_t *client, anedya_txn_
  *          Ensure the appropriate allocation macros are defined.
  */
 anedya_err_t anedya_op_valuestore_set_bool(anedya_client_t *client, anedya_txn_t *txn, const char *key, bool value);
+
+/**
+ * @brief Set a binary value in the valuestore at anedya.
+ *
+ * This function allows setting a binary value encoded in Base64 associated with a specific key
+ * in the device's valuestore. It initializes a transaction, creates a JSON payload with the 
+ * provided key and value, and publishes it to the server if the client is connected.
+ *
+ * @param[in] client Pointer to the `anedya_client_t` structure representing the client.
+ * @param[out] txn Pointer to an `anedya_txn_t` structure for the valuestore transaction.
+ * @param[in] key A string representing the unique identifier (key) for the value in the valuestore.
+ * @param[in] base64_value The binary value, encoded in Base64, to be stored in the valuestore.
+ * @param[in] base64_value_len The length of the Base64 encoded value.
+ *
+ * @retval - `ANEDYA_OK` if the valuestore entry is successfully set.
+ * @retval - `ANEDYA_ERR_NOT_CONNECTED` if the client is not connected to the server.
+ * @retval - `ANEDYA_ERR_VALUE_TOO_LONG` if the Base64 encoded value is longer than 1000 bytes.
+ * @retval - `ANEDYA_ERR_VALUE_MISMATCH_LEN` if the length of the Base64 encoded value does not match the provided length.
+ * @retval - Error code if transaction registration or message publishing fails.
+ *
+ * @note Ensure the client is connected before calling this function.
+ * @warning This function uses static or dynamic allocation based on configuration macros.
+ *          Ensure the appropriate allocation macros are defined.
+ */
+
+anedya_err_t anedya_op_valuestore_set_bin(anedya_client_t *client, anedya_txn_t *txn, const char *key, const char *base64_value, size_t base64_value_len);
 
 /**
  * @brief Send an event to Anedya
