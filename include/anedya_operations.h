@@ -25,6 +25,7 @@
 #define ANEDYA_OP_SUBMIT_EVENT 7
 #define ANEDYA_OP_CMD_UPDATE_STATUS 8
 #define ANEDYA_OP_SUBMIT_LOG 9
+#define ANEDYA_OP_VALUESTORE_GET 10
 
 // Anedya Events
 #define ANEDYA_EVENT_VS_UPDATE_FLOAT 1
@@ -269,6 +270,27 @@ anedya_err_t anedya_op_valuestore_set_bool(anedya_client_t *client, anedya_txn_t
  */
 
 anedya_err_t anedya_op_valuestore_set_bin(anedya_client_t *client, anedya_txn_t *txn, const char *key, const char *base64_value, size_t base64_value_len);
+
+/**
+ * @brief Get the value associated with a key from the valuestore at anedya.
+ *
+ * This function retrieves a value associated with a specific key from the valuestore.
+ * It initializes a transaction, creates a JSON payload with the provided key, and publishes it
+ * to the server if the client is connected.
+ *
+ * @param[in] client Pointer to the `anedya_client_t` structure representing the client.
+ * @param[out] txn Pointer to an `anedya_txn_t` structure for the valuestore transaction.
+ * @param[in] obj Pointer to an `anedya_valuestore_get_key_t` structure containing the key to retrieve.
+ *
+ * @retval - `ANEDYA_OK` if the valuestore entry is successfully retrieved.
+ * @retval - `ANEDYA_ERR_NOT_CONNECTED` if the client is not connected to the server.
+ * @retval - Error code if transaction registration or message publishing fails.
+ *
+ * @note Ensure the client is connected before calling this function.
+ * @warning This function uses static or dynamic allocation based on configuration macros.
+ *          Ensure the appropriate allocation macros are defined.
+ */
+anedya_err_t anedya_op_valuestore_get_key(anedya_client_t *client, anedya_txn_t *txn, anedya_valuestore_get_key_t obj );
 
 /**
  * @brief Send an event to Anedya

@@ -52,3 +52,24 @@ anedya_err_t _anedya_parse_valuestore_float(char *payload, size_t payload_len, a
 anedya_err_t _anedya_parse_valuestore_string(char *payload, size_t payload_len, anedya_valuestore_obj_string_t *obj);
 anedya_err_t _anedya_parse_valuestore_bool(char *payload, size_t payload_len, anedya_valustore_obj_bool_t *obj);
 anedya_err_t _anedya_parse_valuestore_bin(char *payload, size_t payload_len, anedya_valustore_obj_bin_t *obj);
+
+
+typedef struct{
+    anedya_valuestore_ns_t ns;
+    char *key;
+} anedya_valuestore_get_key_t;
+
+typedef struct{
+    const char *scope;
+    const char *key;
+    const char *type;
+    const char *value_str;
+    size_t str_value_len;
+    float value_float;
+    bool value_bool;
+    char *value_bin;
+    size_t bin_value_len;
+    long long modified;
+}anedya_op_get_valuestore_resp_t;
+
+void _anedya_op_valuestore_get_resp(anedya_client_t *client, anedya_txn_t *txn);

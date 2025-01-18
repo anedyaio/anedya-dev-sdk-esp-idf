@@ -252,7 +252,7 @@ void _anedya_handle_txn_response(anedya_client_t *cl, char *payload, int payload
     }
     memcpy(str, payload, payload_len);
     memcpy(buffer, str, str_len);
-    //printf("Payload Received: %s\r\n", str);
+    // printf("Payload Received: %s\r\n", str);
     str[str_len] = '\0';
     buffer[str_len] = '\0';
     json_t mem[32];
@@ -315,6 +315,9 @@ void _anedya_handle_txn_response(anedya_client_t *cl, char *payload, int payload
         break;
     case ANEDYA_OP_SUBMIT_LOG:
         _anedya_device_handle_generic_resp(cl, txn);
+        break;
+    case ANEDYA_OP_VALUESTORE_GET:
+        _anedya_op_valuestore_get_resp(cl, txn);
         break;
     default:
         // Do nothing
