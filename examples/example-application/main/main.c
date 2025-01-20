@@ -49,7 +49,7 @@ void cl_event_handler(anedya_client_t *client, anedya_event_t event, void *event
 {
     switch (event)
     {
-    //=============================================== Commands Handler ======================================================
+    //====================== Commands Handler ==============================
     // For more info visit: https://docs.anedya.io/commands/intro/
     case ANEDYA_EVENT_COMMAND:
         static anedya_command_obj_t local_command_obj; // Persistent memory
@@ -59,8 +59,8 @@ void cl_event_handler(anedya_client_t *client, anedya_event_t event, void *event
         xEventGroupSetBits(gatewaystate.COMMANDEVENTS, COMMAND_AVAILABLE_BIT);
         break;
 
-    // ============================================== Valuestore Handler =====================================================
-    //                                      It Will be called when valuestore is updated
+    // ========================= Valuestore Handler =========================
+    //     It Will be called when valuestore is updated
     // For more info visit: https://docs.anedya.io/valuestore/
     case ANEDYA_EVENT_VS_UPDATE_FLOAT:
         printf(" Received Events \n");
@@ -138,35 +138,35 @@ void app_main(void)
     xTaskCreate(commandHandling_task, "COMMANDHANDLER", 4096, NULL, 1, NULL);  // Start Command Handler
     xTaskCreate(submitLog_task, "SUBMITLOG", 4096, NULL, 4, NULL);             // Start Submit Log
 
-    // for (;;)
-    // {
-    //     // ================================================ Send Heartbeat to Anedya ================================================
-    //     // For more info visit: https://docs.anedya.io/getting-started/quickstart/
+    for (;;)
+    {
+        // ======================== Send Heartbeat to Anedya =======================
+        // For more info visit: https://docs.anedya.io/getting-started/quickstart/
 
-    //     xEventGroupWaitBits(ConnectionEvents, MQTT_CONNECTED_BIT, pdFALSE, pdFALSE, portMAX_DELAY);
-    //     xEventGroupWaitBits(OtaEvents, OTA_NOT_IN_PROGRESS_BIT, pdFALSE, pdFALSE, portMAX_DELAY);
+        xEventGroupWaitBits(ConnectionEvents, MQTT_CONNECTED_BIT, pdFALSE, pdFALSE, portMAX_DELAY);
+        xEventGroupWaitBits(OtaEvents, OTA_NOT_IN_PROGRESS_BIT, pdFALSE, pdFALSE, portMAX_DELAY);
 
-    //     anedya_txn_t hb_txn;
-    //     anedya_txn_register_callback(&hb_txn, TXN_COMPLETE, &current_task);
+        anedya_txn_t hb_txn;
+        anedya_txn_register_callback(&hb_txn, TXN_COMPLETE, &current_task);
 
-    //     anedya_err_t aerr = anedya_device_send_heartbeat(&anedya_client, &hb_txn);
-    //     if (aerr != ANEDYA_OK)
-    //     {
-    //         ESP_LOGI("CLIENT", "%s", anedya_err_to_name(aerr));
-    //     }
-    //     xTaskNotifyWait(0x00, ULONG_MAX, &ulNotifiedValue, 30000 / portTICK_PERIOD_MS);
-    //     if (ulNotifiedValue == 0x01)
-    //     {
-    //         // ESP_LOGI("CLIENT", "TXN Complete");
-    //         printf("%s: Heartbeat sent\n", TAG);
-    //     }
-    //     else
-    //     {
-    //         // ESP_LOGI("CLIENT", "TXN Timeout");
-    //         ESP_LOGE(TAG, "Failed to sent heartbeat");
-    //     }
+        anedya_err_t aerr = anedya_device_send_heartbeat(&anedya_client, &hb_txn);
+        if (aerr != ANEDYA_OK)
+        {
+            ESP_LOGI("CLIENT", "%s", anedya_err_to_name(aerr));
+        }
+        xTaskNotifyWait(0x00, ULONG_MAX, &ulNotifiedValue, 30000 / portTICK_PERIOD_MS);
+        if (ulNotifiedValue == 0x01)
+        {
+            // ESP_LOGI("CLIENT", "TXN Complete");
+            printf("%s: Heartbeat sent\n", TAG);
+        }
+        else
+        {
+            // ESP_LOGI("CLIENT", "TXN Timeout");
+            ESP_LOGE(TAG, "Failed to sent heartbeat");
+        }
 
-    //     vTaskDelay(30000 / portTICK_PERIOD_MS);
-    //     // ==========================================================================================================================
-    // }
+        vTaskDelay(30000 / portTICK_PERIOD_MS);
+        // ============================================================================================
+    }
 }
