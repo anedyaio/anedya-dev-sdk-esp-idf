@@ -3,12 +3,12 @@ menu "Device and Anedya Configuration"
     menu "Anedya Config"
         config CONNECTION_KEY
             string "CONNECTION KEY"
-            default "5861084d020b0a3f19054dd49533ad0e"
+            default ""
             help
                 Connection key to connect to anedya.
         config PHYSICAL_DEVICE_ID
             string "PHYSICAL DEVICE ID"
-            default "708d7fe2-0392-4867-a69c-2996a9c90bf5"
+            default ""
             help
                 Physical Device Id to connect to anedya.
     endmenu
@@ -16,13 +16,13 @@ menu "Device and Anedya Configuration"
     menu "Wifi Settings"
         config ESP_WIFI_SSID
             string "WiFi SSID"
-            default "Invesun_2.4Ghz"
+            default ""
             help
                 SSID (network name) for the example to connect to.
                 
         config ESP_WIFI_PASSWORD
             string "WiFi Password"
-            default "Invesun123com#"
+            default ""
             help
                 WiFi password (WPA or WPA2) for the example to use.
         config WIFI_MAXIMUM_RETRY
