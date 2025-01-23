@@ -1,5 +1,4 @@
 #include <stdio.h>
-
 #include "anedya.h"
 #include "anedya_op_commands.h"
 #include "esp_log.h"
@@ -65,13 +64,13 @@ void cl_event_handler(anedya_client_t *client, anedya_event_t event, void *event
     case ANEDYA_EVENT_VS_UPDATE_FLOAT:
         printf(" Received Events \n");
         ESP_LOGI("CLIENT", "Valuestore update notified: float");
-        anedya_valustore_obj_float_t *data = (anedya_valustore_obj_float_t *)event_data;
+        anedya_valuestore_obj_float_t *data = (anedya_valuestore_obj_float_t *)event_data;
         ESP_LOGI("CLIENT", "Key Updated: %s Value:%f", data->key, data->value);
         break;
     case ANEDYA_EVENT_VS_UPDATE_BOOL:
         printf(" Received Events \n");
         ESP_LOGI("CLIENT", "Valuestore update notified: bool");
-        anedya_valustore_obj_bool_t *data_bool = (anedya_valustore_obj_bool_t *)event_data;
+        anedya_valuestore_obj_bool_t *data_bool = (anedya_valuestore_obj_bool_t *)event_data;
         ESP_LOGI("CLIENT", "Key Updated: %s Value:%d", data_bool->key, data_bool->value);
         break;
     case ANEDYA_EVENT_VS_UPDATE_STRING:
@@ -83,7 +82,7 @@ void cl_event_handler(anedya_client_t *client, anedya_event_t event, void *event
     case ANEDYA_EVENT_VS_UPDATE_BIN:
         printf(" Received Events \n");
         ESP_LOGI("CLIENT", "Valuestore update notified: bin");
-        anedya_valustore_obj_bin_t *data_bin = (anedya_valustore_obj_bin_t *)event_data;
+        anedya_valuestore_obj_bin_t *data_bin = (anedya_valuestore_obj_bin_t *)event_data;
         ESP_LOGI("CLIENT", "Key Updated: %s Value:%s", data_bin->key, data_bin->value);
         break;
 

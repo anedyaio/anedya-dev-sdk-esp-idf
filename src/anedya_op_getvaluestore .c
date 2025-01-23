@@ -152,7 +152,7 @@ void _anedya_op_valuestore_get_resp(anedya_client_t *client, anedya_txn_t *txn)
     }
     else if (strcmp(t, "float") == 0)
     {
-        anedya_valustore_obj_float_t *resp = (anedya_valustore_obj_float_t *)txn->response;
+        anedya_valuestore_obj_float_t *resp = (anedya_valuestore_obj_float_t *)txn->response;
         json_t const *scope = json_getProperty(namespace, "scope");
         if (!scope || JSON_TEXT != json_getType(scope))
         {
@@ -192,7 +192,7 @@ void _anedya_op_valuestore_get_resp(anedya_client_t *client, anedya_txn_t *txn)
     }
     else if (strcmp(t, "binary") == 0)
     {
-        anedya_valustore_obj_bin_t *resp = (anedya_valustore_obj_bin_t *)txn->response;
+        anedya_valuestore_obj_bin_t *resp = (anedya_valuestore_obj_bin_t *)txn->response;
         json_t const *scope = json_getProperty(namespace, "scope");
         if (!scope || JSON_TEXT != json_getType(scope))
         {
@@ -233,7 +233,7 @@ void _anedya_op_valuestore_get_resp(anedya_client_t *client, anedya_txn_t *txn)
         resp->modified = json_getInteger(modified);
     }else if (strcmp(t, "boolean") == 0)
     {
-        anedya_valustore_obj_bool_t *resp = (anedya_valustore_obj_bool_t *)txn->response;
+        anedya_valuestore_obj_bool_t *resp = (anedya_valuestore_obj_bool_t *)txn->response;
         json_t const *scope = json_getProperty(namespace, "scope");
         if (!scope || JSON_TEXT != json_getType(scope))
         {
