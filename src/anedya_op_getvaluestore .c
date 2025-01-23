@@ -77,7 +77,7 @@ void _anedya_op_valuestore_get_resp(anedya_client_t *client, anedya_txn_t *txn)
     else
     {
         txn->is_success = false;
-        json_t const *error = json_getProperty(json, "errCode");
+        json_t const *error = json_getProperty(json, "errorcode");
         if (!error || JSON_INTEGER != json_getType(error))
         {
             _anedya_interface_std_out("Error, the error property is not found.");
