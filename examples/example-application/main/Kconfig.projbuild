@@ -3,12 +3,12 @@ menu "Device and Anedya Configuration"
     menu "Anedya Config"
         config CONNECTION_KEY
             string "CONNECTION KEY"
-            default "YOUR_CONNECTION_KEY"
+            default ""
             help
                 Connection key to connect to anedya.
         config PHYSICAL_DEVICE_ID
             string "PHYSICAL DEVICE ID"
-            default "YOUR_DEVICE_ID"
+            default ""
             help
                 Physical Device Id to connect to anedya.
     endmenu
@@ -16,13 +16,13 @@ menu "Device and Anedya Configuration"
     menu "Wifi Settings"
         config ESP_WIFI_SSID
             string "WiFi SSID"
-            default "SSID"
+            default ""
             help
                 SSID (network name) for the example to connect to.
                 
         config ESP_WIFI_PASSWORD
             string "WiFi Password"
-            default "PASSWORD"
+            default ""
             help
                 WiFi password (WPA or WPA2) for the example to use.
         config WIFI_MAXIMUM_RETRY
@@ -76,6 +76,30 @@ menu "Device and Anedya Configuration"
             config ESP_WIFI_AUTH_WAPI_PSK
                 bool "WAPI PSK"
         endchoice
+    endmenu
+
+    menu "Time Settings"
+
+        config SNTP_TIME_SERVER
+            string "SNTP server name"
+            default "time.anedya.io"
+            help
+                Hostname of the main SNTP server.
+    
+        choice SNTP_TIME_SYNC_METHOD
+            prompt "Time synchronization method"
+            default SNTP_TIME_SYNC_METHOD_SMOOTH
+            help
+                Time synchronization method.
+    
+            config SNTP_TIME_SYNC_METHOD_IMMED
+                bool "update time immediately when received"
+            config SNTP_TIME_SYNC_METHOD_SMOOTH
+                bool "update time with smooth method (adjtime)"
+            config SNTP_TIME_SYNC_METHOD_CUSTOM
+                bool "custom implementation"
+        endchoice
+    
     endmenu
 
 endmenu

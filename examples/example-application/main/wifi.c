@@ -138,6 +138,7 @@ void wifi_task(void *pvParameters)
     // Monitor Wi-Fi connection status
     while (1) {
          xEventGroupWaitBits(ConnectionEvents, WIFI_CONNECTED_BIT, pdFALSE, pdFALSE, portMAX_DELAY);
+        xEventGroupWaitBits(OtaEvents, OTA_NOT_IN_PROGRESS_BIT, pdFALSE, pdFALSE, 30000 / portTICK_PERIOD_MS);
         vTaskDelay(5000 / portTICK_PERIOD_MS);
     }
 }
