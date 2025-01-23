@@ -24,60 +24,9 @@ void valueStore_task(void *pvParameters)
         anedya_txn_t vs_txn;
         anedya_err_t v_err;
         anedya_txn_register_callback(&vs_txn, TXN_COMPLETE, &current_task);
-        // ======================= Set float Value ================================
-        // For more info visit: https://docs.anedya.io/valuestore
-
-        const char *key = "FLOAT_KEY";
-        float value = 1.00;
-
-        v_err = anedya_op_valuestore_set_float(&anedya_client, &vs_txn, key, value);
-        if (v_err != ANEDYA_OK)
-        {
-            ESP_LOGI("CLIENT", "%s", anedya_err_to_name(v_err));
-        }
-        xTaskNotifyWait(0x00, ULONG_MAX, &ulNotifiedValue, 30000 / portTICK_PERIOD_MS);
-        if (ulNotifiedValue == 0x01)
-        {
-            if (vs_txn.is_success && vs_txn.is_complete)
-            {
-                printf("--------------------------------\n");
-                printf("%s: Key:'%s', Value: '%f'  Key Value Set\n", TAG, key, value);
-                printf("--------------------------------\n");
-            }
-        }
-        else
-        {
-            // ESP_LOGI("CLIENT", "TXN Timeout");
-            ESP_LOGE(TAG, "Failed to set Key Value to Anedya");
-        }
-
-        //============================= Set bool Value ================================
-        const char *boolKey = "BOOL_KEY";
-        bool boolValue = true;
-
-        v_err = anedya_op_valuestore_set_bool(&anedya_client, &vs_txn, boolKey, boolValue);
-
-        if (v_err != ANEDYA_OK)
-        {
-            ESP_LOGI("CLIENT", "%s", anedya_err_to_name(v_err));
-        }
-        xTaskNotifyWait(0x00, ULONG_MAX, &ulNotifiedValue, 30000 / portTICK_PERIOD_MS);
-        if (ulNotifiedValue == 0x01)
-        {
-            if (vs_txn.is_success && vs_txn.is_complete)
-            {
-                printf("--------------------------------\n");
-                printf("%s: Key:'%s', Value: '%d'  Key Value Set\n", TAG, boolKey, boolValue);
-                printf("--------------------------------\n");
-            }
-        }
-        else
-        {
-            // ESP_LOGI("CLIENT", "TXN Timeout");
-            ESP_LOGE(TAG, "Failed to set Key Value to Anedya");
-        }
-
+        
         //============================ Set String Value ================================
+        // For more info visit: https://docs.anedya.io/valuestore
         const char *strKey = "STR_KEY";
         const char *strValue = "OK";
         size_t strValueLen = strlen(strValue);
@@ -103,45 +52,17 @@ void valueStore_task(void *pvParameters)
             ESP_LOGE(TAG, "Failed to set Key Value to Anedya");
         }
 
-        // ======================= Set Binary Value ================================
-        const char *binKey = "BIN_KEY";
-        const char *binValue = "aGVsbG8=";
-
-        size_t binValueLen = strlen(binValue);
-
-        v_err = anedya_op_valuestore_set_bin(&anedya_client, &vs_txn, binKey, binValue, binValueLen);
-
-        if (v_err != ANEDYA_OK)
-        {
-            ESP_LOGE("CLIENT", "%s", anedya_err_to_name(v_err));
-        }
-        xTaskNotifyWait(0x00, ULONG_MAX, &ulNotifiedValue, 30000 / portTICK_PERIOD_MS);
-        if (ulNotifiedValue == 0x01)
-        {
-            if (vs_txn.is_success && vs_txn.is_complete)
-            {
-                printf("--------------------------------\n");
-                printf("%s: Key:'%s', Value: '%s'  Key Value Set\n", TAG, binKey, binValue);
-                printf("--------------------------------\n");
-            }
-            else{
-                ESP_LOGE(TAG, "Failed to set Key Value to Anedya");
-            }
-        }
-        else
-        {
-            // ESP_LOGI("CLIENT", "TXN Timeout");
-            ESP_LOGE(TAG, "Failed to set Key Value to Anedya");
-        }
-
         // ======================= Get String Value ================================
-        anedya_valuestore_get_key_t vs_get_key;
-        vs_get_key.key = "STR_KEY";
-        vs_get_key.ns.scope = ANEDYA_SCOPE_SELF;
+        anedya_req_valuestore_get_key_t req_str_key = {
+            .key = "STR_KEY",
+            .ns = {
+                .scope = ANEDYA_SCOPE_SELF,
+            }
+        };
 
-        anedya_op_get_valuestore_resp_t resp;
+        anedya_valuestore_obj_string_t resp;
         vs_txn.response = &resp;
-        v_err = anedya_op_valuestore_get_key(&anedya_client, &vs_txn, vs_get_key);
+        v_err = anedya_op_valuestore_get_key(&anedya_client, &vs_txn, req_str_key);
 
         if (v_err != ANEDYA_OK)
         {
@@ -154,7 +75,7 @@ void valueStore_task(void *pvParameters)
             if (vs_txn.is_success && vs_txn.is_complete)
             {
                 printf("--------------------------------\n");
-                printf("%s: Got Key:'%s', Type: '%s' \n", TAG, vs_get_key.key, resp.value_str);
+                printf("%s: Got Key:'%s', Value: '%s' \n", TAG, resp.key, resp.value);
                 printf("--------------------------------\n");
             }
             else

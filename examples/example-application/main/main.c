@@ -49,7 +49,7 @@ void cl_event_handler(anedya_client_t *client, anedya_event_t event, void *event
 {
     switch (event)
     {
-    //====================== Commands Handler ==============================
+    //=============================================== Commands Handler ======================================================
     // For more info visit: https://docs.anedya.io/commands/intro/
     case ANEDYA_EVENT_COMMAND:
         static anedya_command_obj_t local_command_obj; // Persistent memory
@@ -59,8 +59,8 @@ void cl_event_handler(anedya_client_t *client, anedya_event_t event, void *event
         xEventGroupSetBits(gatewaystate.COMMANDEVENTS, COMMAND_AVAILABLE_BIT);
         break;
 
-    // ========================= Valuestore Handler =========================
-    //     It Will be called when valuestore is updated
+    // ============================================== Valuestore Handler =====================================================
+    //                                      It Will be called when valuestore is updated
     // For more info visit: https://docs.anedya.io/valuestore/
     case ANEDYA_EVENT_VS_UPDATE_FLOAT:
         printf(" Received Events \n");
@@ -87,6 +87,7 @@ void cl_event_handler(anedya_client_t *client, anedya_event_t event, void *event
         ESP_LOGI("CLIENT", "Key Updated: %s Value:%s", data_bin->key, data_bin->value);
         break;
 
+        // ======================================================================================================================
     }
 }
 
@@ -140,7 +141,7 @@ void app_main(void)
 
     for (;;)
     {
-        // ======================== Send Heartbeat to Anedya =======================
+        // ================================================ Send Heartbeat to Anedya ================================================
         // For more info visit: https://docs.anedya.io/getting-started/quickstart/
 
         xEventGroupWaitBits(ConnectionEvents, MQTT_CONNECTED_BIT, pdFALSE, pdFALSE, portMAX_DELAY);
@@ -167,6 +168,6 @@ void app_main(void)
         }
 
         vTaskDelay(30000 / portTICK_PERIOD_MS);
-        // ============================================================================================
+        // ==========================================================================================================================
     }
 }
