@@ -293,6 +293,7 @@ anedya_err_t anedya_op_valuestore_set_bin(anedya_client_t *client, anedya_txn_t 
 anedya_err_t anedya_op_valuestore_get_key(anedya_client_t *client, anedya_txn_t *txn, anedya_req_valuestore_get_key_t obj );
 
 /**
+
  * @brief Send an event to Anedya
  *
  * This function sends an event to Anedya.
