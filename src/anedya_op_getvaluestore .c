@@ -1,9 +1,6 @@
 #include "anedya_operations.h"
 
-
-
-
-anedya_err_t anedya_op_valuestore_get_key(anedya_client_t *client, anedya_txn_t *txn, anedya_valuestore_get_key_t obj)
+anedya_err_t anedya_op_valuestore_get_key(anedya_client_t *client, anedya_txn_t *txn, anedya_req_valuestore_get_key_t obj)
 {
     // First check if client is already connected or not
     if (client->is_connected == 0)
@@ -55,17 +52,15 @@ anedya_err_t anedya_op_valuestore_get_key(anedya_client_t *client, anedya_txn_t 
     return ANEDYA_OK;
 }
 
-
 void _anedya_op_valuestore_get_resp(anedya_client_t *client, anedya_txn_t *txn)
 {
-    // Parse JSON and check for error
-    anedya_op_get_valuestore_resp_t *resp = (anedya_op_get_valuestore_resp_t *)txn->response;
+    // printf("Resp: %s\n", txn->_rxbody);
     json_t mem[32];
     // Parse the json and get the txn id
     json_t const *json = json_create(txn->_rxbody, mem, sizeof mem / sizeof *mem);
     if (!json)
     {
-        _anedya_interface_std_out("Error while parsing JSON body:response handler OTA Next");
+        _anedya_interface_std_out("Error while parsing JSON body:response handler Get value store");
         return;
     }
     // Check if success
@@ -87,7 +82,7 @@ void _anedya_op_valuestore_get_resp(anedya_client_t *client, anedya_txn_t *txn)
         {
             _anedya_interface_std_out("Error, the error property is not found.");
         }
-        int err = json_getInteger(error);
+        int err = (anedya_err_t)json_getInteger(error);
         txn->_op_err = err;
         return;
     }
@@ -98,21 +93,13 @@ void _anedya_op_valuestore_get_resp(anedya_client_t *client, anedya_txn_t *txn)
         _anedya_interface_std_out("Error, the namespace property is not found.");
         return;
     }
-    json_t const *scope = json_getProperty(namespace, "scope");
-    if (!scope || JSON_TEXT != json_getType(scope))
-    {
-        _anedya_interface_std_out("Error, the scope property is not found.");
-        return;
-    }
-    resp->scope = json_getValue(scope);
 
-    json_t const *key = json_getProperty(json, "key");
-    if (!key || JSON_TEXT != json_getType(key))
+    json_t const *modified = json_getProperty(json, "modified");
+    if (!modified || JSON_INTEGER != json_getType(modified))
     {
-        _anedya_interface_std_out("Error, the key property is not found.");
+        _anedya_interface_std_out("Error, the modified property is not found.");
         return;
     }
-    resp->key = json_getValue(key);
 
     json_t const *type = json_getProperty(json, "type");
     if (!type || JSON_TEXT != json_getType(type))
@@ -120,52 +107,170 @@ void _anedya_op_valuestore_get_resp(anedya_client_t *client, anedya_txn_t *txn)
         _anedya_interface_std_out("Error, the type property is not found.");
         return;
     }
-    resp->type = json_getValue(type);
+    const char *t = (char *)json_getValue(type);
+    if (strcmp(t, "string") == 0)
+    {
+        anedya_valuestore_obj_string_t *resp = (anedya_valuestore_obj_string_t *)txn->response;
+        json_t const *scope = json_getProperty(namespace, "scope");
+        if (!scope || JSON_TEXT != json_getType(scope))
+        {
+            _anedya_interface_std_out("Error, the scope property is not found.");
+            return;
+        }
 
-    if (strcmp(resp->type, "string") == 0){
+        resp->ns.scope = (char *)json_getValue(scope);
+        if (strcmp(resp->ns.scope, "global") == 0)
+        {
+            json_t const *id_prop = json_getProperty(namespace, "id");
+            if (!id_prop || JSON_TEXT != json_getType(id_prop))
+            {
+                _anedya_interface_std_out("Error, the id property is not found.");
+                return;
+            }
+            const char *id =(char *) json_getValue(id_prop);
+            strcpy(resp->ns.id, id);
+        }
+
+        json_t const *key = json_getProperty(json, "key");
+        if (!key || JSON_TEXT != json_getType(key))
+        {
+            _anedya_interface_std_out("Error, the key property is not found.");
+            return;
+        }
+        const char *k = (char *)json_getValue(key);
+        strcpy(resp->key, k);
+
         json_t const *value = json_getProperty(json, "value");
         if (!value || JSON_TEXT != json_getType(value))
         {
             _anedya_interface_std_out("Error, the value property is not found.");
             return;
         }
-        resp->value_str = json_getValue(value);
-        resp->str_value_len = strlen(resp->value_str);
-    }else if (strcmp(resp->type, "float") == 0){
+        resp->value = json_getValue(value);
+        resp->value_len = strlen(resp->value);
+        resp->modified = json_getInteger(modified);
+    }
+    else if (strcmp(t, "float") == 0)
+    {
+        anedya_valustore_obj_float_t *resp = (anedya_valustore_obj_float_t *)txn->response;
+        json_t const *scope = json_getProperty(namespace, "scope");
+        if (!scope || JSON_TEXT != json_getType(scope))
+        {
+            _anedya_interface_std_out("Error, the scope property is not found.");
+            return;
+        }
+        resp->ns.scope = (char *)json_getValue(scope);
+        if (strcmp(resp->ns.scope, "global") == 0)
+        {
+            json_t const *id_prop = json_getProperty(namespace, "id");
+            if (!id_prop || JSON_TEXT != json_getType(id_prop))
+            {
+                _anedya_interface_std_out("Error, the id property is not found.");
+                return;
+            }
+            const char *id = (char *)json_getValue(id_prop);
+            strcpy(resp->ns.id, id);
+        }
+
+        json_t const *key = json_getProperty(json, "key");
+        if (!key || JSON_TEXT != json_getType(key))
+        {
+            _anedya_interface_std_out("Error, the key property is not found.");
+            return;
+        }
+        const char *k =(char *) json_getValue(key);
+        strcpy(resp->key, k);
+
         json_t const *value = json_getProperty(json, "value");
         if (!value || JSON_INTEGER != json_getType(value))
         {
             _anedya_interface_std_out("Error, the value property is not found.");
             return;
         }
-        resp->value_float = json_getInteger(value);
-    }else if (strcmp(resp->type, "boolean") == 0){
-        json_t const *value = json_getProperty(json, "value");
-        if (!value || JSON_BOOLEAN != json_getType(value))
+        resp->value = json_getInteger(value);
+        resp->modified = json_getInteger(modified);
+    }
+    else if (strcmp(t, "binary") == 0)
+    {
+        anedya_valustore_obj_bin_t *resp = (anedya_valustore_obj_bin_t *)txn->response;
+        json_t const *scope = json_getProperty(namespace, "scope");
+        if (!scope || JSON_TEXT != json_getType(scope))
         {
-            _anedya_interface_std_out("Error, the value property is not found.");
+            _anedya_interface_std_out("Error, the scope property is not found.");
             return;
         }
-        resp->value_bool = json_getBoolean(value);
-    }else if (strcmp(resp->type, "binary") == 0){
+        resp->ns.scope = (char *)json_getValue(scope);
+        if (strcmp(resp->ns.scope, "global") == 0)
+        {
+            json_t const *id_prop = json_getProperty(namespace, "id");
+            if (!id_prop || JSON_TEXT != json_getType(id_prop))
+            {
+                _anedya_interface_std_out("Error, the id property is not found.");
+                return;
+            }
+            const char *id = (char *)json_getValue(id_prop);
+            strcpy(resp->ns.id, id);
+        }
+
+        json_t const *key = json_getProperty(json, "key");
+        if (!key || JSON_TEXT != json_getType(key))
+        {
+            _anedya_interface_std_out("Error, the key property is not found.");
+            return;
+        }
+        const char *k = (char *)json_getValue(key);
+        strcpy(resp->key, k);
+
         json_t const *value = json_getProperty(json, "value");
         if (!value || JSON_TEXT != json_getType(value))
         {
             _anedya_interface_std_out("Error, the value property is not found.");
             return;
         }
-        resp->value_bin = json_getValue(value);
-        resp->bin_value_len = strlen(resp->value_bin);
-    }else{
-        _anedya_interface_std_out("Error, the type property is not found.");
-        return;
-    }
-    json_t const *modified= json_getProperty(json, "modified");
-    if (!modified || JSON_INTEGER != json_getType(modified))
+        const char* v = json_getValue(value);
+        resp->value =(char *)v;
+        resp->value_len = strlen(resp->value);
+        resp->modified = json_getInteger(modified);
+    }else if (strcmp(t, "boolean") == 0)
     {
-        _anedya_interface_std_out("Error, the modified property is not found.");
-        return;
+        anedya_valustore_obj_bool_t *resp = (anedya_valustore_obj_bool_t *)txn->response;
+        json_t const *scope = json_getProperty(namespace, "scope");
+        if (!scope || JSON_TEXT != json_getType(scope))
+        {
+            _anedya_interface_std_out("Error, the scope property is not found.");
+            return;
+        }
+        resp->ns.scope = (char *)json_getValue(scope);
+        if (strcmp(resp->ns.scope, "global") == 0)
+        {
+            json_t const *id_prop = json_getProperty(namespace, "id");
+            if (!id_prop || JSON_TEXT != json_getType(id_prop))
+            {
+                _anedya_interface_std_out("Error, the id property is not found.");
+                return;
+            }
+            const char *id = (char *)json_getValue(id_prop);
+            strcpy(resp->ns.id, id);
+        }
+
+        json_t const *key = json_getProperty(json, "key");
+        if (!key || JSON_TEXT != json_getType(key))
+        {
+            _anedya_interface_std_out("Error, the key property is not found.");
+            return;
+        }
+        const char *k = (char *)json_getValue(key);
+        strcpy(resp->key, k);
+
+        json_t const *value = json_getProperty(json, "value");
+        if (!value || JSON_BOOLEAN != json_getType(value))
+        {
+            _anedya_interface_std_out("Error, the value property is not found.");
+            return;
+        }
+        resp->value = json_getBoolean(value);
+        resp->modified = json_getInteger(modified);
     }
-    resp->modified = json_getInteger(modified);
+
     return;
 }
