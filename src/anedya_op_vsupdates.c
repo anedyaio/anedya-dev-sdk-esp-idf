@@ -41,7 +41,7 @@ uint8_t _anedya_parse_valuestore_type(char *payload, size_t payload_len)
     return ANEDYA_VALUESTORE_TYPE_NONE;
 }
 
-anedya_err_t _anedya_parse_valuestore_float(char *payload, size_t payload_len, anedya_valustore_obj_float_t *obj)
+anedya_err_t _anedya_parse_valuestore_float(char *payload, size_t payload_len, anedya_valuestore_obj_float_t *obj)
 {
     json_t mem[32];
     //printf("Buffer processed: %s\n", payload);
@@ -188,7 +188,7 @@ anedya_err_t _anedya_parse_valuestore_string(char *payload, size_t payload_len, 
     return ANEDYA_OK;
 }
 
-anedya_err_t _anedya_parse_valuestore_bool(char *payload, size_t payload_len, anedya_valustore_obj_bool_t *obj)
+anedya_err_t _anedya_parse_valuestore_bool(char *payload, size_t payload_len, anedya_valuestore_obj_bool_t *obj)
 {
     json_t mem[32];
     //printf("Buffer processed: %s\n", payload);
@@ -261,7 +261,7 @@ anedya_err_t _anedya_parse_valuestore_bool(char *payload, size_t payload_len, an
     return ANEDYA_OK;
 }
 
-anedya_err_t _anedya_parse_valuestore_bin(char *payload, size_t payload_len, anedya_valustore_obj_bin_t *obj)
+anedya_err_t _anedya_parse_valuestore_bin(char *payload, size_t payload_len, anedya_valuestore_obj_bin_t *obj)
 {
     json_t mem[32];
     // printf("Buffer processed: %s\n", payload);

@@ -252,7 +252,7 @@ void _anedya_handle_txn_response(anedya_client_t *cl, char *payload, int payload
     }
     memcpy(str, payload, payload_len);
     memcpy(buffer, str, str_len);
-    //printf("Payload Received: %s\r\n", str);
+    // printf("Payload Received: %s\r\n", str);
     str[str_len] = '\0';
     buffer[str_len] = '\0';
     json_t mem[32];
@@ -316,6 +316,9 @@ void _anedya_handle_txn_response(anedya_client_t *cl, char *payload, int payload
     case ANEDYA_OP_SUBMIT_LOG:
         _anedya_device_handle_generic_resp(cl, txn);
         break;
+    case ANEDYA_OP_VALUESTORE_GET:
+        _anedya_op_valuestore_get_resp(cl, txn);
+        break;
     default:
         // Do nothing
         break;
@@ -351,7 +354,7 @@ void _anedya_handle_event(anedya_client_t *cl, char *payload, int payload_len, u
             uint8_t type = _anedya_parse_valuestore_type(buffer, buffer_len);
             switch(type) {
                 case ANEDYA_VALUESTORE_TYPE_FLOAT:
-                    anedya_valustore_obj_float_t float_data;
+                    anedya_valuestore_obj_float_t float_data;
                     //printf("Buffer in: %s", buffer);
                     _anedya_parse_valuestore_float(buffer, buffer_len, &float_data);
                     // Call the event handler with data
@@ -372,7 +375,7 @@ void _anedya_handle_event(anedya_client_t *cl, char *payload, int payload_len, u
                     break;
                 case ANEDYA_VALUESTORE_TYPE_BOOL:
                     //event_data = _anedya_parse_valuestore_json(payload, payload_len);
-                    anedya_valustore_obj_bool_t bool_data;
+                    anedya_valuestore_obj_bool_t bool_data;
                     _anedya_parse_valuestore_bool(buffer, buffer_len, &bool_data);
                     // Call the event handler with data
                     if(cl->config->event_handler != NULL)
@@ -382,7 +385,7 @@ void _anedya_handle_event(anedya_client_t *cl, char *payload, int payload_len, u
                     break;
                 case ANEDYA_VALUESTORE_TYPE_BIN:
                     //event_data = _anedya_parse_valuestore_json(payload, payload_len);
-                    anedya_valustore_obj_bin_t bin_data;
+                    anedya_valuestore_obj_bin_t bin_data;
                     _anedya_parse_valuestore_bin(buffer, buffer_len, &bin_data);
                     // Call the event handler with data
                     if(cl->config->event_handler != NULL)

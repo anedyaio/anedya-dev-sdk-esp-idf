@@ -1,35 +1,83 @@
-| Supported Targets | ESP32 | ESP32-C2 | ESP32-C3 | ESP32-C5 | ESP32-C6 | ESP32-H2 | ESP32-P4 | ESP32-S2 | ESP32-S3 |
-| ----------------- | ----- | -------- | -------- | -------- | -------- | -------- | -------- | -------- | -------- |
+[![Anedya Documentation](https://img.shields.io/badge/Anedya-Documentation-blue?style=for-the-badge)](https://docs.anedya.io?utm_source=github&utm_medium=link&utm_campaign=github-examples&utm_content=esp32-idf)
 
-# _Sample project_
-
-(See the README.md file in the upper level 'examples' directory for more information about examples.)
-
-This is the simplest buildable example. The example is used by command `idf.py create-project`
-that copies the project to user specified path and set it's name. For more information follow the [docs page](https://docs.espressif.com/projects/esp-idf/en/latest/api-guides/build-system.html#start-a-new-project)
+# anedya-dev-esp-id-example
 
 
+Anedya-Dev-ESP-IDF examples.
 
-## How to use example
-We encourage the users to use the example as a template for the new projects.
-A recommended way is to follow the instructions on a [docs page](https://docs.espressif.com/projects/esp-idf/en/latest/api-guides/build-system.html#start-a-new-project).
+--- 
 
-## Example folder contents
+## Getting Started with Anedya
 
-The project **sample_project** contains one source file in C language [main.c](main/main.c). The file is located in folder [main](main).
+Follow these steps to set up your project with Anedya:
 
-ESP-IDF projects are built using CMake. The project build configuration is contained in `CMakeLists.txt`
-files that provide set of directives and instructions describing the project's source files and targets
-(executable, library, or both). 
+1. **Create an Anedya Account**:
+   - Sign up for an account at [Anedya](https://anedya.io) and log in.
 
-Below is short explanation of remaining files in the project folder.
+2. **Create a New Project**:
+   - In the Anedya Dashboard, create a new project to organize your devices and data.
 
-```
-├── CMakeLists.txt
-├── main
-│   ├── CMakeLists.txt
-│   └── main.c
-└── README.md                  This is the file you are currently reading
-```
-Additionally, the sample project contains Makefile and component.mk files, used for the legacy Make based build system. 
-They are not used or needed when building with CMake and idf.py.
+3. **Define Variables**:
+   - Define variables (e.g., `temperature`, `humidity`) for your project to track device data.
+
+4. **Add a Node**:
+   - Create a node to represent a physical device (e.g., "Room1" or "Study Room") to interact with the hardware.
+
+> **Note**: Ensure you fill in the variable identifiers correctly, as they are crucial for mapping the data between your physical device and the Anedya platform.
+
+---
+
+## Menu-Config Setup
+
+To configure your project with the correct settings in ESP-IDF, follow these steps:
+
+1. **Disable certain NVS settings**:
+   - Uncheck the following options:
+     - Store PHY calibration data in NVS
+     - WiFi NVS flash
+
+2. **Select Flash Size**:
+   - Set the flash size of your device.
+
+> **Note**: This example has been tested with the ESP32 board with 4MB flash.
+
+3. **Partition Table**:
+   - Choose the `Custom partition table CSV` option.
+
+4. **Add Anedya Root Certificate**:
+   - Tick the "Add custom certificates to the default bundle" option.
+   - Provide the path to the certificate, e.g., `./certs`.
+   - In the "Default certificate bundle options", select "Use only the most common certificates from the default bundle".
+
+5. **Configure Anedya Credentials**:
+   - Provide the following credentials:
+     - **Connection Key**
+     - **Physical Device ID**
+
+6. **Configure Wi-Fi Credentials**:
+   - Provide your Wi-Fi details:
+     - **SSID**
+     - **Password**
+
+7. **Adjust Stack Size**:
+   - Set the "Main stack size" to `10240`.
+
+---
+
+## Example Usage
+
+Depending on your use case, you can enable or disable tasks in the `main.c` file.
+
+---
+
+## Additional Resources
+
+- **Anedya Python SDK**:
+   - [PyPI](https://pypi.org/project/anedya-dev-sdk/)
+   - [GitHub Repository](https://github.com/anedyaio/anedya-dev-sdk-python)
+
+- **Official Anedya Documentation**:  
+   - Visit the [Anedya Documentation](https://docs.anedya.io) for detailed guides and API references.
+
+- **Anedya Website**:
+   - Explore more at [Anedya.io](https://anedya.io/?utm_source=github&utm_medium=link&utm_campaign=github-examples&utm_content=esp32_quectel).
