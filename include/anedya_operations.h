@@ -26,6 +26,7 @@
 #define ANEDYA_OP_CMD_UPDATE_STATUS 8
 #define ANEDYA_OP_SUBMIT_LOG 9
 #define ANEDYA_OP_VALUESTORE_GET 10
+#define ANEDYA_OP_VALUESTORE_GET_LIST 11
 
 // Anedya Events
 #define ANEDYA_EVENT_VS_UPDATE_FLOAT 1
@@ -44,7 +45,7 @@ typedef struct
     size_t error;
 } anedya_generic_resp_t;
 
-// Anedya Operations and requests
+// =========================== Anedya Operations and Requests =========================
 
 /**
  * @brief Send a device bind request to the server.
@@ -293,6 +294,25 @@ anedya_err_t anedya_op_valuestore_set_bin(anedya_client_t *client, anedya_txn_t 
 anedya_err_t anedya_op_valuestore_get_key(anedya_client_t *client, anedya_txn_t *txn, anedya_req_valuestore_get_key_t obj );
 
 /**
+ * @brief Get the list of the keys from the valuestore at anedya.
+ *
+ * This function retrieves a list of keys-value associated with a list of keys from the valuestore.
+ *
+ * @param[in] client Pointer to the `anedya_client_t` structure representing the client.
+ * @param[out] txn Pointer to an `anedya_txn_t` structure for the valuestore transaction.
+ * @param[in] obj Pointer to an `anedya_req_valuestore_list_obj_t` structure containing the list of keys to retrieve.
+ *
+ * @retval - `ANEDYA_OK` if the valuestore entry is successfully retrieved.
+ * @retval - `ANEDYA_ERR_NOT_CONNECTED` if the client is not connected to the server.
+ * @retval - Error code if transaction registration or message publishing fails.
+ *
+ * @note Ensure the client is connected before calling this function.
+ * @warning This function uses static or dynamic allocation based on configuration macros.
+ *          Ensure the appropriate allocation macros are defined.
+ */
+anedya_err_t anedya_op_valuestore_list_obj(anedya_client_t *client, anedya_txn_t *txn, anedya_req_valuestore_list_obj_t obj );
+
+/**
  * @brief Send an event to Anedya
  *
  * This function sends an event to Anedya.
@@ -330,9 +350,32 @@ anedya_err_t anedya_op_submit_event(anedya_client_t *client, anedya_txn_t *txn, 
  */
 anedya_err_t anedya_op_cmd_status_update(anedya_client_t *client, anedya_txn_t *txn, anedya_req_cmd_status_update_t *req_config);
 
+/**
+ * @brief Send a log to Anedya
+ *
+ * This function sends a log to Anedya.
+ *
+ * @param[in] client Pointer to the `anedya_client_t` structure representing the client.
+ * @param[inout] txn Pointer to an `anedya_txn_t` structure for the valuestore transaction.
+ * @param[in] log Pointer to the log
+ * @param[in] log_len Length of the log
+ * @param[in] timestamp_ms Timestamp of the log
+ *
+ * @retval - `ANEDYA_OK` if the valuestore entry is successfully set.
+ * @retval - `ANEDYA_ERR_NOT_CONNECTED` if the client is not connected to the server.
+ * @retval - Error code if transaction registration or message publishing fails.
+ *
+ * @note Ensure the client is connected before calling this function.
+ * @warning This function uses static or dynamic allocation based on configuration macros.
+ *          Ensure the appropriate allocation macros are defined.
+ */
 anedya_err_t anedya_op_submit_log(anedya_client_t *client, anedya_txn_t *txn, char *log, unsigned int log_len, unsigned long long timestamp_ms);
 
-// Reponse handlers
+
+
+
+
+//========================== Reponse handlers ===================================
 void _anedya_device_handle_generic_resp(anedya_client_t *client, anedya_txn_t *txn);
 void _anedya_op_ota_next_resp(anedya_client_t *client, anedya_txn_t *txn);
 
