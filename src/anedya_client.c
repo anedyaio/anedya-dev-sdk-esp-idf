@@ -327,6 +327,9 @@ void _anedya_handle_txn_response(anedya_client_t *cl, char *payload, int payload
     case ANEDYA_OP_VALUESTORE_DELETE:
         _anedya_device_handle_generic_resp(cl, txn);
         break;
+    case ANEDYA_OP_CMD_LIST_OBJ:
+        _anedya_op_command_handle_list_obj_resp(cl,txn);
+        break;
     default:
         // Do nothing
         break;
