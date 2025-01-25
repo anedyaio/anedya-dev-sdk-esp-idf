@@ -51,6 +51,7 @@ void valueStore_task(void *pvParameters)
             // ESP_LOGI("CLIENT", "TXN Timeout");
             ESP_LOGE(TAG, "Failed to set Key Value to Anedya");
         }
+        ulNotifiedValue = 0x00;
 
         // ======================= Get String Value ================================
         anedya_req_valuestore_get_key_t req_str_key = {
@@ -83,6 +84,7 @@ void valueStore_task(void *pvParameters)
                 ESP_LOGE(TAG, "Failed to get key value from Anedya");
             }
         }
+        ulNotifiedValue = 0x00;
 
         // ====================== Get VS Obj List ================================
         anedya_req_valuestore_list_obj_t req_key_list = {
@@ -122,6 +124,31 @@ void valueStore_task(void *pvParameters)
                 ESP_LOGE(TAG, "Failed to get key list from Anedya");
             }
         }
+        ulNotifiedValue = 0x00;
+
+        // ====================== ValueStore Delete ================================
+        const char *delKey = "STR_KEY";
+        v_err = anedya_op_valuestore_delete(&anedya_client, &vs_txn, delKey);
+
+        if (v_err != ANEDYA_OK)
+        {
+            ESP_LOGE("CLIENT", "%s", anedya_err_to_name(v_err));
+
+        }
+
+        xTaskNotifyWait(0x00, ULONG_MAX, &ulNotifiedValue, 30000 / portTICK_PERIOD_MS);
+        if (ulNotifiedValue == 0x01)
+        {
+            if (vs_txn.is_success && vs_txn.is_complete)
+            {
+                ESP_LOGI(TAG, "%s Deleted", delKey);
+            }
+            else
+            {
+                ESP_LOGE(TAG, "Failed to delete key from Anedya");
+            }
+        }
+        //========================================================================
 
         vTaskDelay(60000 / portTICK_PERIOD_MS);
     }
