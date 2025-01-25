@@ -111,7 +111,7 @@ void _anedya_op_valuestore_handle_list_obj_resp(anedya_client_t *client, anedya_
         return;
     }
     resp->next = (int)json_getInteger(next_prop);
-    printf("Next: %d\n", resp->next);
+    // printf("Next: %d\n", resp->next);
 
     json_t const *list_prop = json_getProperty(json, "keys");
     if (!list_prop || JSON_ARRAY != json_getType(list_prop))
