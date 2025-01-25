@@ -93,7 +93,8 @@ anedya_err_t anedya_client_disconnect(anedya_client_t *client)
     return ANEDYA_OK;
 }
 
-anedya_err_t anedya_client_destroy(anedya_client_t *client) {
+anedya_err_t anedya_client_destroy(anedya_client_t *client)
+{
     anedya_err_t err;
     err = anedya_interface_mqtt_destroy(client->mqtt_client);
     if (err != ANEDYA_OK)
@@ -121,7 +122,7 @@ anedya_err_t _anedya_txn_store_aquire_slot(anedya_txn_store_t *store, anedya_txn
     // Aquire lock
     if (store->_lock == 1)
     {
-        //printf("Lock failed while aquiring\r\n");
+        // printf("Lock failed while aquiring\r\n");
         return ANEDYA_ERR_LOCK_FAILED;
     }
     // Take lock
@@ -130,7 +131,7 @@ anedya_err_t _anedya_txn_store_aquire_slot(anedya_txn_store_t *store, anedya_txn
     for (int i = 0; i < ANEDYA_MAX_CONCURRENT_TXN; i++)
     {
         int64_t now = time(NULL);
-        if(store->txn_slot_free[i] == 0 && (now - store->aquired_time[i]) > 30)
+        if (store->txn_slot_free[i] == 0 && (now - store->aquired_time[i]) > 30)
         {
             // TXN has timed out. Free the aquired slot
             store->txn_slot_free[i] = 1;
@@ -144,7 +145,7 @@ anedya_err_t _anedya_txn_store_aquire_slot(anedya_txn_store_t *store, anedya_txn
             store->aquired_time[i] = (int64_t)time(NULL);
             txn->desc = i + 1;
             store->_lock = 0;
-            //printf("Aquired slot: %d\r\n", txn->desc);
+            // printf("Aquired slot: %d\r\n", txn->desc);
             return ANEDYA_OK;
         }
     }
@@ -158,15 +159,15 @@ anedya_err_t _anedya_txn_store_release_slot(anedya_txn_store_t *store, anedya_tx
     // Aquire lock
     if (store->_lock == 1)
     {
-        //printf("Lock failed while releasing\r\n");
+        // printf("Lock failed while releasing\r\n");
         return ANEDYA_ERR_LOCK_FAILED;
     }
     // Take lock
     store->_lock = 1;
     store->txn_slot_free[txn->desc - 1] = 1;
     store->txns[txn->desc - 1] = NULL;
-    //printf("Released slot: %d\r\n", txn->desc);
-    // Release the lock
+    // printf("Released slot: %d\r\n", txn->desc);
+    //  Release the lock
     store->_lock = 0;
     return ANEDYA_OK;
 }
@@ -175,26 +176,26 @@ void _anedya_message_handler(anedya_client_t *cl, char *topic, int topic_len, ch
 {
     // Just received the message, now determine for which topic this message is delivered
     //_anedya_interface_std_out("Processing message");
-    //printf("Matching from: %.*s Len: %d\r\n", topic_len, topic, topic_len);
+    // printf("Matching from: %.*s Len: %d\r\n", topic_len, topic, topic_len);
     int i = 0;
     for (i = 0; i < 4; i++)
     {
-        //printf("Matching with: %s Len: %d\n", cl->_message_topics[i], strlen(cl->_message_topics[i]));
+        // printf("Matching with: %s Len: %d\n", cl->_message_topics[i], strlen(cl->_message_topics[i]));
         if (strncmp(topic, cl->_message_topics[i], strlen(cl->_message_topics[i]) - 1) == 0)
         {
             //_anedya_interface_std_out("Topic matched");
-            //printf("Matching from: %.*s Len: %d\r\n", topic_len, topic, topic_len);
+            // printf("Matching from: %.*s Len: %d\r\n", topic_len, topic, topic_len);
             break;
         }
     }
-    //printf("Index: %d\r\n", i);
+    // printf("Index: %d\r\n", i);
     switch (i)
     {
     case 0:
         _anedya_handle_txn_response(cl, payload, payload_len, 0);
         break;
     case 1:
-        //printf("Error case\r\n");
+        // printf("Error case\r\n");
         _anedya_handle_txn_response(cl, payload, payload_len, 1);
         break;
     case 2:
@@ -224,7 +225,8 @@ void _anedya_on_connect_handler(anedya_client_t *client)
 
 void _anedya_on_disconnect_handler(anedya_client_t *client)
 {
-    if(client->is_connected == 1) {
+    if (client->is_connected == 1)
+    {
         // This means the flow is coming from unintentional connection close
         // Process retry logic
         client->is_connected = 0;
@@ -241,11 +243,11 @@ void _anedya_on_disconnect_handler(anedya_client_t *client)
 void _anedya_handle_txn_response(anedya_client_t *cl, char *payload, int payload_len, uint8_t topic)
 {
     // Parse the payload, and get the txn id
-    //printf("Handling txn response\r\n");
+    // printf("Handling txn response\r\n");
     char buffer[ANEDYA_RX_BUFFER_SIZE];
     char str[ANEDYA_RX_BUFFER_SIZE];
     int str_len = payload_len;
-    for(int i = 0;i< ANEDYA_RX_BUFFER_SIZE; i++)
+    for (int i = 0; i < ANEDYA_RX_BUFFER_SIZE; i++)
     {
         buffer[i] = 0;
         str[i] = 0;
@@ -271,7 +273,7 @@ void _anedya_handle_txn_response(anedya_client_t *cl, char *payload, int payload
     char const *txn_index = json_getValue(txn_id);
     int index = atoi(txn_index);
     // If the txn id is 0, then it is an error
-    //printf("Txn id: %d\r\n", index);
+    // printf("Txn id: %d\r\n", index);
     if (index == 0)
     {
         _anedya_interface_std_out("Error, invalid txn id");
@@ -286,10 +288,10 @@ void _anedya_handle_txn_response(anedya_client_t *cl, char *payload, int payload
         txn->is_complete = true;
         txn->is_success = false;
         _anedya_txn_complete(cl, txn);
-        return;    
+        return;
     }
-    //printf("Rx Body: %s", txn->_rxbody);
-    // Call the Operation handler
+    // printf("Rx Body: %s", txn->_rxbody);
+    //  Call the Operation handler
     switch (txn->_op)
     {
     case ANEDYA_OP_BIND_DEVICE:
@@ -317,7 +319,10 @@ void _anedya_handle_txn_response(anedya_client_t *cl, char *payload, int payload
         _anedya_device_handle_generic_resp(cl, txn);
         break;
     case ANEDYA_OP_VALUESTORE_GET:
-        _anedya_op_valuestore_get_resp(cl, txn);
+        _anedya_op_valuestore_handle_get_resp(cl, txn);
+        break;
+    case ANEDYA_OP_VALUESTORE_GET_LIST:
+        _anedya_op_valuestore_handle_list_obj_resp(cl, txn);
         break;
     default:
         // Do nothing
@@ -335,67 +340,69 @@ void _anedya_handle_event(anedya_client_t *cl, char *payload, int payload_len, u
     char buffer[ANEDYA_RX_BUFFER_SIZE];
     int buffer_len = payload_len;
     memcpy(buffer, payload, payload_len);
-    //anedya_event_t event;
-    //void *event_data = NULL;
-    switch(topic) {
-        case 2:
-            // Handle command
-            anedya_command_obj_t cmd;
-            cmd.cmd_data_type= ANEDYA_DATATYPE_UNKNOWN;
-            _anedya_parse_inbound_command(buffer, buffer_len, &cmd);
-            if(cl->config->event_handler != NULL)
+    // anedya_event_t event;
+    // void *event_data = NULL;
+    switch (topic)
+    {
+    case 2:
+        // Handle command
+        anedya_command_obj_t cmd;
+        cmd.cmd_data_type = ANEDYA_DATATYPE_UNKNOWN;
+        _anedya_parse_inbound_command(buffer, buffer_len, &cmd);
+        if (cl->config->event_handler != NULL)
+        {
+            cl->config->event_handler(cl, ANEDYA_EVENT_COMMAND, &cmd);
+        }
+        break;
+    case 3:
+        // Handle valuestore update
+        // First decode the valuestore object
+        uint8_t type = _anedya_parse_valuestore_type(buffer, buffer_len);
+        switch (type)
+        {
+        case ANEDYA_VALUESTORE_TYPE_FLOAT:
+            anedya_valuestore_obj_float_t float_data;
+            // printf("Buffer in: %s", buffer);
+            _anedya_parse_valuestore_float(buffer, buffer_len, &float_data);
+            // Call the event handler with data
+            if (cl->config->event_handler != NULL)
             {
-                cl->config->event_handler(cl, ANEDYA_EVENT_COMMAND, &cmd);
+                cl->config->event_handler(cl, ANEDYA_EVENT_VS_UPDATE_FLOAT, &float_data);
             }
             break;
-        case 3:
-            // Handle valuestore update
-            // First decode the valuestore object
-            uint8_t type = _anedya_parse_valuestore_type(buffer, buffer_len);
-            switch(type) {
-                case ANEDYA_VALUESTORE_TYPE_FLOAT:
-                    anedya_valuestore_obj_float_t float_data;
-                    //printf("Buffer in: %s", buffer);
-                    _anedya_parse_valuestore_float(buffer, buffer_len, &float_data);
-                    // Call the event handler with data
-                    if(cl->config->event_handler != NULL)
-                    {
-                        cl->config->event_handler(cl, ANEDYA_EVENT_VS_UPDATE_FLOAT, &float_data);
-                    }
-                    break;
-                case ANEDYA_VALUESTORE_TYPE_STRING:
-                    //event_data = _anedya_parse_valuestore_string(payload, payload_len);
-                    anedya_valuestore_obj_string_t str_data;
-                    _anedya_parse_valuestore_string(buffer, buffer_len, &str_data);
-                    // Call the event handler with data
-                    if(cl->config->event_handler != NULL)
-                    {
-                        cl->config->event_handler(cl, ANEDYA_EVENT_VS_UPDATE_STRING, &str_data);
-                    }
-                    break;
-                case ANEDYA_VALUESTORE_TYPE_BOOL:
-                    //event_data = _anedya_parse_valuestore_json(payload, payload_len);
-                    anedya_valuestore_obj_bool_t bool_data;
-                    _anedya_parse_valuestore_bool(buffer, buffer_len, &bool_data);
-                    // Call the event handler with data
-                    if(cl->config->event_handler != NULL)
-                    {
-                        cl->config->event_handler(cl, ANEDYA_EVENT_VS_UPDATE_BOOL, &bool_data);
-                    }
-                    break;
-                case ANEDYA_VALUESTORE_TYPE_BIN:
-                    //event_data = _anedya_parse_valuestore_json(payload, payload_len);
-                    anedya_valuestore_obj_bin_t bin_data;
-                    _anedya_parse_valuestore_bin(buffer, buffer_len, &bin_data);
-                    // Call the event handler with data
-                    if(cl->config->event_handler != NULL)
-                    {
-                        cl->config->event_handler(cl, ANEDYA_EVENT_VS_UPDATE_BIN, &bin_data);
-                    }
-                    break;
-                default:
-                    break;
+        case ANEDYA_VALUESTORE_TYPE_STRING:
+            // event_data = _anedya_parse_valuestore_string(payload, payload_len);
+            anedya_valuestore_obj_string_t str_data;
+            _anedya_parse_valuestore_string(buffer, buffer_len, &str_data);
+            // Call the event handler with data
+            if (cl->config->event_handler != NULL)
+            {
+                cl->config->event_handler(cl, ANEDYA_EVENT_VS_UPDATE_STRING, &str_data);
             }
             break;
+        case ANEDYA_VALUESTORE_TYPE_BOOL:
+            // event_data = _anedya_parse_valuestore_json(payload, payload_len);
+            anedya_valuestore_obj_bool_t bool_data;
+            _anedya_parse_valuestore_bool(buffer, buffer_len, &bool_data);
+            // Call the event handler with data
+            if (cl->config->event_handler != NULL)
+            {
+                cl->config->event_handler(cl, ANEDYA_EVENT_VS_UPDATE_BOOL, &bool_data);
+            }
+            break;
+        case ANEDYA_VALUESTORE_TYPE_BIN:
+            // event_data = _anedya_parse_valuestore_json(payload, payload_len);
+            anedya_valuestore_obj_bin_t bin_data;
+            _anedya_parse_valuestore_bin(buffer, buffer_len, &bin_data);
+            // Call the event handler with data
+            if (cl->config->event_handler != NULL)
+            {
+                cl->config->event_handler(cl, ANEDYA_EVENT_VS_UPDATE_BIN, &bin_data);
+            }
+            break;
+        default:
+            break;
+        }
+        break;
     }
 }

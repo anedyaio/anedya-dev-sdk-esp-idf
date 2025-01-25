@@ -52,7 +52,7 @@ anedya_err_t anedya_op_valuestore_get_key(anedya_client_t *client, anedya_txn_t 
     return ANEDYA_OK;
 }
 
-void _anedya_op_valuestore_get_resp(anedya_client_t *client, anedya_txn_t *txn)
+void _anedya_op_valuestore_handle_get_resp(anedya_client_t *client, anedya_txn_t *txn)
 {
     // printf("Resp: %s\n", txn->_rxbody);
     json_t mem[32];
