@@ -1,6 +1,6 @@
 ## IDF Component Manager Manifest File
 dependencies:
-  anedya/anedya-esp: "^0.0.11"
+  anedya/anedya-esp: "^0.0.12"
   ## Required IDF version
   idf:
     version: ">=4.1.0"
