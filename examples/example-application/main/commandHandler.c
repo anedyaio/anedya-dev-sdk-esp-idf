@@ -35,7 +35,7 @@ void commandHandling_task(void *pvParameters)
     anedya_command_obj_list_t cmd_obj_list[cmd_list_req.limit];
     cmd_list_resp.commands = cmd_obj_list;
     cmd_list_txn.response = &cmd_list_resp;
-    anedya_err_t err = anedya_op_cmd_list_obj_to_anedya(&anedya_client, &cmd_list_txn, cmd_list_req);
+    anedya_err_t err = anedya_op_cmd_list_obj(&anedya_client, &cmd_list_txn, cmd_list_req);
     if (err != ANEDYA_OK)
     {
         ESP_LOGE(TAG, "Failed to list commands: %d", err);
