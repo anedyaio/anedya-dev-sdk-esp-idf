@@ -24,7 +24,6 @@ void valueStore_task(void *pvParameters)
         anedya_txn_t vs_txn;
         anedya_err_t v_err;
         anedya_txn_register_callback(&vs_txn, TXN_COMPLETE, &current_task);
-
         //============================ Set String Value ================================
         // For more info visit: https://docs.anedya.io/valuestore
         const char *strKey = "STR_KEY";
