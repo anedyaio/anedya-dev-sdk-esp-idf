@@ -28,3 +28,28 @@ typedef struct {
 } anedya_req_cmd_status_update_t;
 
 anedya_err_t _anedya_parse_inbound_command(char *payload, unsigned int payload_len, anedya_command_obj_t *obj);
+
+
+typedef struct
+{
+    unsigned short limit;
+    unsigned short offset;
+} anedya_req_cmd_list_obj_t;
+
+typedef struct {
+    anedya_uuid_t cmdId;
+    char command[50];
+    unsigned int command_len;
+    char *status;
+    unsigned long long issued_at;
+    unsigned long long updated;
+} anedya_command_obj_list_t;
+
+typedef struct {
+    anedya_command_obj_list_t *commands;
+    unsigned short int totalcount;
+    unsigned short int count;
+    unsigned short int next;
+} anedya_op_cmd_list_obj_resp_t;
+
+void _anedya_op_command_handle_list_obj_resp(anedya_client_t *client, anedya_txn_t *txn);

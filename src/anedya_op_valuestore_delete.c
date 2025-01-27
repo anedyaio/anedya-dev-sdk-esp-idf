@@ -33,7 +33,7 @@ anedya_err_t anedya_op_valuestore_delete(anedya_client_t *client, anedya_txn_t *
 
     // Body is ready now publish it to the MQTT
     char topic[100];
-    printf("Req: %s", txbuffer);
+    // printf("Req: %s", txbuffer);
     strcpy(topic, "$anedya/device/");
     strcat(topic, client->config->_device_id_str);
     strcat(topic, "/valuestore/delete/json");

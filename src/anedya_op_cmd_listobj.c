@@ -1,6 +1,6 @@
 #include "anedya_operations.h"
 
-anedya_err_t anedya_op_valuestore_list_obj(anedya_client_t *client, anedya_txn_t *txn, anedya_req_valuestore_list_obj_t obj)
+anedya_err_t anedya_op_cmd_list_obj(anedya_client_t *client, anedya_txn_t *txn, anedya_req_cmd_list_obj_t obj)
 {
     // First check if client is already connected or not
     if (client->is_connected == 0)
@@ -9,7 +9,7 @@ anedya_err_t anedya_op_valuestore_list_obj(anedya_client_t *client, anedya_txn_t
     }
 
     // If it is connected, then create a txn
-    txn->_op = ANEDYA_OP_VALUESTORE_GET_LIST;
+    txn->_op = ANEDYA_OP_CMD_LIST_OBJ;
     anedya_err_t err = _anedya_txn_register(client, txn);
     if (err != ANEDYA_OK)
     {
@@ -40,7 +40,7 @@ anedya_err_t anedya_op_valuestore_list_obj(anedya_client_t *client, anedya_txn_t
     // printf("Req: %s", txbuffer);
     strcpy(topic, "$anedya/device/");
     strcat(topic, client->config->_device_id_str);
-    strcat(topic, "/valuestore/scan/json");
+    strcat(topic, "/commands/list/json");
     err = anedya_interface_mqtt_publish(client->mqtt_client, topic, strlen(topic), txbuffer, strlen(txbuffer), 0, 0);
     if (err != ANEDYA_OK)
     {
@@ -49,7 +49,7 @@ anedya_err_t anedya_op_valuestore_list_obj(anedya_client_t *client, anedya_txn_t
     return ANEDYA_OK;
 }
 
-void _anedya_op_valuestore_handle_list_obj_resp(anedya_client_t *client, anedya_txn_t *txn)
+void _anedya_op_command_handle_list_obj_resp(anedya_client_t *client, anedya_txn_t *txn)
 {
 
     // printf("Resp: %s\n", txn->_rxbody);
@@ -86,15 +86,17 @@ void _anedya_op_valuestore_handle_list_obj_resp(anedya_client_t *client, anedya_
     }
 
     // Flow reaches here means, request was successful.
-    anedya_op_valuestore_list_obj_resp_t *resp = (anedya_op_valuestore_list_obj_resp_t *)txn->response;
+    anedya_op_cmd_list_obj_resp_t *resp = (anedya_op_cmd_list_obj_resp_t *)txn->response;
 
-    json_t const *totalcount_prop = json_getProperty(json, "count");
+    json_t const *totalcount_prop = json_getProperty(json, "totalcount");
     if (!totalcount_prop || JSON_INTEGER != json_getType(totalcount_prop))
     {
         _anedya_interface_std_out("Error, the totalcount property is not found.");
-        return;
     }
-    resp->totalcount = (int)json_getInteger(totalcount_prop);
+    else
+    {
+        resp->totalcount = (int)json_getInteger(totalcount_prop);
+    }
 
     json_t const *count_prop = json_getProperty(json, "count");
     if (!count_prop || JSON_INTEGER != json_getType(count_prop))
@@ -113,78 +115,72 @@ void _anedya_op_valuestore_handle_list_obj_resp(anedya_client_t *client, anedya_
     resp->next = (int)json_getInteger(next_prop);
     // printf("Next: %d\n", resp->next);
 
-    json_t const *list_prop = json_getProperty(json, "keys");
+    json_t const *list_prop = json_getProperty(json, "commands");
     if (!list_prop || JSON_ARRAY != json_getType(list_prop))
     {
         _anedya_interface_std_out("Error, the keys property is not found.");
         return;
     }
 
-    json_t const *keys_prop = json_getChild(list_prop);
+    json_t const *cmds_prop = json_getChild(list_prop);
     int i = 0;
-    while (keys_prop && i < resp->count)
+    while (cmds_prop && i < resp->count)
     {
-        if (JSON_OBJ != json_getType(keys_prop))
+        if (JSON_OBJ != json_getType(cmds_prop))
         {
             _anedya_interface_std_out("Error, the key property is not an object.");
             return;
         }
 
-        json_t const *namespace_prop = json_getProperty(keys_prop, "namespace");
-        if (!namespace_prop || JSON_OBJ != json_getType(namespace_prop))
-        {
-            _anedya_interface_std_out("Error, the namespace property is not found or is not text.");
-            return;
-        }
-        json_t const *scope_prop = json_getProperty(namespace_prop, "scope");
-        if (!scope_prop || JSON_TEXT != json_getType(scope_prop))
-        {
-            _anedya_interface_std_out("Error, the scope property is not found or is not text.");
-            return;
-        }
-        resp->keys[i].ns.scope = (char *)json_getValue(scope_prop);
-
-        json_t const *id_prop = json_getProperty(namespace_prop, "id");
-        if (!id_prop || JSON_TEXT != json_getType(id_prop))
-        {
-            _anedya_interface_std_out("Error, the id property is not found or is not text.");
-            const char *id = "";
-            snprintf(resp->keys[i].ns.id, sizeof(resp->keys[i].ns.id), "%s", id);
-        }
-        else
-        {
-            const char *id = (const char *)json_getValue(id_prop);
-            snprintf(resp->keys[i].ns.id, sizeof(resp->keys[i].ns.id), "%s", id);
-        }
-
-        json_t const *key_prop = json_getProperty(keys_prop, "key");
-        if (!key_prop || JSON_TEXT != json_getType(key_prop))
+        json_t const *command_id_prop = json_getProperty(cmds_prop, "commandId");
+        if (!command_id_prop || JSON_TEXT != json_getType(command_id_prop))
         {
             _anedya_interface_std_out("Error, the key property is not found or is not text.");
             return;
         }
 
-        const char *key = (const char *)json_getValue(key_prop);
-        snprintf(resp->keys[i].key, sizeof(resp->keys[i].key), "%s", key);
+        const char *cmd_id = json_getValue(command_id_prop);
+        anedya_err_t err = _anedya_uuid_parse(cmd_id, resp->commands[i].cmdId);
+        if (err != ANEDYA_OK)
+        {
+            _anedya_interface_std_out("Error, failed to parse the command id.");
+            return;
+        }
 
-        json_t const *type_prop = json_getProperty(keys_prop, "type");
-        if (!type_prop || JSON_TEXT != json_getType(type_prop))
+        json_t const *cmd_prop = json_getProperty(cmds_prop, "command");
+        if (!cmd_prop || JSON_TEXT != json_getType(cmd_prop))
         {
             _anedya_interface_std_out("Error, the type property is not found or is not text.");
             return;
         }
-        const char *type = (char *)json_getValue(type_prop);
-        snprintf(resp->keys[i].type, sizeof(resp->keys[i].type), "%s", type);
+        const char *cmd = (char *)json_getValue(cmd_prop);
+        snprintf(resp->commands[i].command, sizeof(resp->commands[i].command), "%s", cmd);
 
-        json_t const *modified_prop = json_getProperty(keys_prop, "modified");
-        if (!modified_prop || JSON_INTEGER != json_getType(modified_prop))
+        json_t const *status_prop = json_getProperty(cmds_prop, "status");
+        if (!status_prop || JSON_TEXT != json_getType(status_prop))
+        {
+            _anedya_interface_std_out("Error, the type property is not found or is not text.");
+            return;
+        }
+        resp->commands[i].status = (char *)json_getValue(status_prop);
+
+        json_t const *issued_at_prop = json_getProperty(cmds_prop, "issuedAt");
+        if (!issued_at_prop || JSON_INTEGER != json_getType(issued_at_prop))
         {
             _anedya_interface_std_out("Error, the modified property is not found or is not text.");
             return;
         }
-        resp->keys[i].modified = (int64_t)json_getInteger(modified_prop);
+        resp->commands[i].issued_at = (unsigned long long)json_getInteger(issued_at_prop);
 
-        keys_prop = json_getSibling(keys_prop); // Move to the next sibling in the array
+        json_t const *updated_prop = json_getProperty(cmds_prop, "updated");
+        if (!updated_prop || JSON_INTEGER != json_getType(updated_prop))
+        {
+            _anedya_interface_std_out("Error, the modified property is not found or is not text.");
+            return;
+        }
+        resp->commands[i].updated = (unsigned long long)json_getInteger(updated_prop);
+
+        cmds_prop = json_getSibling(cmds_prop); // Move to the next sibling in the array
         i++;
     }
 
