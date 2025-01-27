@@ -314,11 +314,12 @@ void _anedya_handle_txn_response(anedya_client_t *cl, char *payload, int payload
         break;
     case ANEDYA_OP_CMD_UPDATE_STATUS:
         _anedya_device_handle_generic_resp(cl, txn);
-        break;
+            break;
     case ANEDYA_OP_SUBMIT_LOG:
         _anedya_device_handle_generic_resp(cl, txn);
         break;
     case ANEDYA_OP_VALUESTORE_GET:
+    
         _anedya_op_valuestore_handle_get_resp(cl, txn);
         break;
     case ANEDYA_OP_VALUESTORE_GET_LIST:
@@ -329,6 +330,9 @@ void _anedya_handle_txn_response(anedya_client_t *cl, char *payload, int payload
         break;
     case ANEDYA_OP_CMD_LIST_OBJ:
         _anedya_op_command_handle_list_obj_resp(cl,txn);
+        break;
+    case ANEDYA_OP_CMD_NEXT:
+        _anedya_op_cmd_handle_next_resp(cl,txn);
         break;
     default:
         // Do nothing
