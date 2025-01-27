@@ -78,7 +78,7 @@ void ota_management_task(void *pvParameters)
             if (resp.deployment_available)
             {
                 char depID[37];
-                char URL[1000];
+                // char URL[1000];
                 uuid_unparse(resp.deployment_id, depID);
                 ESP_LOGI("OTA", "A deployment is available!");
                 ESP_LOGI("OTA", "Deployment ID: %s", depID);
