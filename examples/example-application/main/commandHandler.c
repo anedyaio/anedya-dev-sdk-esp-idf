@@ -32,11 +32,11 @@ void commandHandling_task(void *pvParameters)
         .limit = 1,
         .offset = 0,
     };
-    anedya_op_cmd_list_obj_resp_t cmd_list_resp;
-    anedya_command_obj_list_t cmd_obj_list[cmd_list_req.limit];
+    anedya_op_cmd_queued_obj_resp_t cmd_list_resp;
+    anedya_command_queued_obj_t cmd_obj_list[cmd_list_req.limit];
     cmd_list_resp.commands = cmd_obj_list;
     cmd_list_txn.response = &cmd_list_resp;
-    anedya_err_t err = anedya_op_cmd_list_obj(&anedya_client, &cmd_list_txn, cmd_list_req);
+    anedya_err_t err = anedya_op_cmd_queued_obj(&anedya_client, &cmd_list_txn, cmd_list_req);
     if (err != ANEDYA_OK)
     {
         ESP_LOGE(TAG, "Failed to list commands: %d", err);

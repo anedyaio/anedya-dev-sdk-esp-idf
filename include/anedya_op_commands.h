@@ -45,16 +45,16 @@ typedef struct
     char *status;
     unsigned long long issued_at;
     unsigned long long updated;
-} anedya_command_obj_list_t;
+} anedya_command_queued_obj_t;
 typedef struct
 {
-    anedya_command_obj_list_t *commands;
+    anedya_command_queued_obj_t *commands;
     unsigned short int totalcount;
     unsigned short int count;
     unsigned short int next;
-} anedya_op_cmd_list_obj_resp_t;
+} anedya_op_cmd_queued_obj_resp_t;
 
-void _anedya_op_command_handle_list_obj_resp(anedya_client_t *client, anedya_txn_t *txn);
+void _anedya_op_command_handle_queued_obj_resp(anedya_client_t *client, anedya_txn_t *txn);
 
 // ============== Next Command ==================
 typedef struct
