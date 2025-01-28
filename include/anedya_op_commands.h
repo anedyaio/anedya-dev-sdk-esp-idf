@@ -42,7 +42,7 @@ typedef struct
     anedya_uuid_t cmdId;
     char command[50];
     unsigned int command_len;
-    char *status;
+    char status[20];
     unsigned long long issued_at;
     unsigned long long updated;
 } anedya_command_queued_obj_t;

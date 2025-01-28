@@ -162,7 +162,8 @@ void _anedya_op_command_handle_queued_obj_resp(anedya_client_t *client, anedya_t
             _anedya_interface_std_out("Error, the type property is not found or is not text.");
             return;
         }
-        resp->commands[i].status = (char *)json_getValue(status_prop);
+        const char *status = (char *)json_getValue(status_prop);
+        snprintf(resp->commands[i].status, sizeof(resp->commands[i].status), "%s", status);
 
         json_t const *issued_at_prop = json_getProperty(cmds_prop, "issuedAt");
         if (!issued_at_prop || JSON_INTEGER != json_getType(issued_at_prop))
