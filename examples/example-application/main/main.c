@@ -76,7 +76,7 @@ void cl_event_handler(anedya_client_t *client, anedya_event_t event, void *event
     case ANEDYA_EVENT_VS_UPDATE_STRING:
         printf(" Received Events \n");
         ESP_LOGI("CLIENT", "Valuestore update notified: string");
-        anedya_valuestore_obj_string_t *data_str= (anedya_valuestore_obj_string_t *)event_data;
+        anedya_valuestore_obj_string_t *data_str = (anedya_valuestore_obj_string_t *)event_data;
         ESP_LOGI("CLIENT", "Key Updated: %s Value:%s", data_str->key, data_str->value);
         break;
     case ANEDYA_EVENT_VS_UPDATE_BIN:
@@ -132,10 +132,10 @@ void app_main(void)
     xEventGroupWaitBits(event_group, BIT3, pdFALSE, pdFALSE, 30000 / portTICK_PERIOD_MS);
 
     // =============================================== Operations ================================================================
-    xTaskCreate(ota_management_task, "OTA", 10240, &gatewaystate, 1, NULL);      // Start OTA Task
-    xTaskCreate(submitData_task, "SUBMITDATA", 4096, NULL, 2, NULL);            // Start Submit Data Task
-    xTaskCreate(valueStore_task, "VALUESTORE", 10240, NULL, 4, NULL);           // Start Valuestore Task
-    xTaskCreate(commandHandling_task, "COMMANDHANDLER", 4096, NULL, 1, NULL);  // Start Command Handler
+    xTaskCreate(ota_management_task, "OTA", 10240, &gatewaystate, 1, NULL);    // Start OTA Task
+    xTaskCreate(submitData_task, "SUBMITDATA", 4096, NULL, 2, NULL);           // Start Submit Data Task
+    xTaskCreate(valueStore_task, "VALUESTORE", 10240, NULL, 4, NULL);          // Start Valuestore Task
+    xTaskCreate(commandHandling_task, "COMMANDHANDLER", 10240, NULL, 1, NULL); // Start Command Handler
     xTaskCreate(submitLog_task, "SUBMITLOG", 4096, NULL, 4, NULL);             // Start Submit Log
 
     for (;;)
