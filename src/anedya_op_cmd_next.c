@@ -90,8 +90,8 @@ void _anedya_op_cmd_handle_next_resp(anedya_client_t *client, anedya_txn_t *txn)
     {
         _anedya_interface_std_out("Error, the available property is not found.");
     }
-    resp->available = json_getBoolean(available);
-    if (!resp->available)
+    resp->is_available = json_getBoolean(available);
+    if (!resp->is_available)
     {
         printf("No more commands available\n");
         return;

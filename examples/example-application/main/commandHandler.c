@@ -28,15 +28,15 @@ void commandHandling_task(void *pvParameters)
     //================================== Get Queued Commands List ================================
     anedya_txn_t cmd_list_txn;
     anedya_txn_register_callback(&cmd_list_txn, TXN_COMPLETE, &current_task);
-    anedya_req_cmd_list_obj_t cmd_list_req = {
+    anedya_req_cmd_list_t cmd_list_req = {
         .limit = 1,
         .offset = 0,
     };
-    anedya_op_cmd_queued_obj_resp_t cmd_list_resp;
-    anedya_command_queued_obj_t cmd_obj_list[cmd_list_req.limit];
+    anedya_op_cmd_list_resp_t cmd_list_resp;
+    anedya_command_obj_t cmd_obj_list[cmd_list_req.limit];
     cmd_list_resp.commands = cmd_obj_list;
     cmd_list_txn.response = &cmd_list_resp;
-    anedya_err_t err = anedya_op_cmd_list(&anedya_client, &cmd_list_txn, cmd_list_req);
+    anedya_err_t err = anedya_op_cmd_get_list(&anedya_client, &cmd_list_txn, cmd_list_req);
     if (err != ANEDYA_OK)
     {
         ESP_LOGE(TAG, "Failed to list commands: %d", err);
@@ -48,19 +48,27 @@ void commandHandling_task(void *pvParameters)
         {
             ESP_LOGI(TAG, "-------------------------------------");
             ESP_LOGI(TAG, "Command List:");
-            for (int i = 0; i < cmd_list_req.limit; i++)
+            if (cmd_list_resp.is_available)
             {
-                ESP_LOGI(TAG, "Command ID: %02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X",
-                         cmd_list_resp.commands[i].cmdId[0], cmd_list_resp.commands[i].cmdId[1],
-                         cmd_list_resp.commands[i].cmdId[2], cmd_list_resp.commands[i].cmdId[3],
-                         cmd_list_resp.commands[i].cmdId[4], cmd_list_resp.commands[i].cmdId[5],
-                         cmd_list_resp.commands[i].cmdId[6], cmd_list_resp.commands[i].cmdId[7],
-                         cmd_list_resp.commands[i].cmdId[8], cmd_list_resp.commands[i].cmdId[9],
-                         cmd_list_resp.commands[i].cmdId[10], cmd_list_resp.commands[i].cmdId[11],
-                         cmd_list_resp.commands[i].cmdId[12], cmd_list_resp.commands[i].cmdId[13],
-                         cmd_list_resp.commands[i].cmdId[14], cmd_list_resp.commands[i].cmdId[15]);
-                ESP_LOGI(TAG, "Command Name: %s", cmd_list_resp.commands[i].command);
-                ESP_LOGI(TAG, "Command Status: %s", cmd_list_resp.commands[i].status);
+
+                for (int i = 0; i < cmd_list_req.limit; i++)
+                {
+                    ESP_LOGI(TAG, "Command ID: %02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X",
+                             cmd_list_resp.commands[i].cmdId[0], cmd_list_resp.commands[i].cmdId[1],
+                             cmd_list_resp.commands[i].cmdId[2], cmd_list_resp.commands[i].cmdId[3],
+                             cmd_list_resp.commands[i].cmdId[4], cmd_list_resp.commands[i].cmdId[5],
+                             cmd_list_resp.commands[i].cmdId[6], cmd_list_resp.commands[i].cmdId[7],
+                             cmd_list_resp.commands[i].cmdId[8], cmd_list_resp.commands[i].cmdId[9],
+                             cmd_list_resp.commands[i].cmdId[10], cmd_list_resp.commands[i].cmdId[11],
+                             cmd_list_resp.commands[i].cmdId[12], cmd_list_resp.commands[i].cmdId[13],
+                             cmd_list_resp.commands[i].cmdId[14], cmd_list_resp.commands[i].cmdId[15]);
+                    ESP_LOGI(TAG, "Command Name: %s", cmd_list_resp.commands[i].command);
+                    ESP_LOGI(TAG, "Command Status: %s", cmd_list_resp.commands[i].status);
+                }
+            }
+            else
+            {
+                ESP_LOGI(TAG, "Command List is empty");
             }
             ESP_LOGI(TAG, "--------------------------------------");
         }
@@ -88,16 +96,22 @@ void commandHandling_task(void *pvParameters)
     {
         if (cmd_next_txn.is_success && cmd_next_txn.is_complete)
         {
-            ESP_LOGI(TAG, "Available: %s", cmd_next_resp.available ? "true" : "false");
-            ESP_LOGI(TAG, "Command: %s", cmd_next_resp.command);
-            ESP_LOGI(TAG, "Command Length: %u", cmd_next_resp.command_len);
-            ESP_LOGI(TAG, "Data: %s", cmd_next_resp.data);
-            ESP_LOGI(TAG, "Data Length: %u", cmd_next_resp.data_len);
-            ESP_LOGI(TAG, "Status: %s", cmd_next_resp.status);
-            ESP_LOGI(TAG, "Data Type: %u", cmd_next_resp.data_type);
-            ESP_LOGI(TAG, "Issued At: %llu", cmd_next_resp.issued_at);
-            ESP_LOGI(TAG, "Updated At: %llu", cmd_next_resp.updated);
-            ESP_LOGI(TAG, "Next Available: %s", cmd_next_resp.nextavailable ? "true" : "false");
+            if (cmd_next_resp.is_available)
+            { // If the command is available, log the details
+
+                ESP_LOGI(TAG, "Available: %s", cmd_next_resp.is_available ? "true" : "false");
+                ESP_LOGI(TAG, "Command: %s", cmd_next_resp.command);
+                ESP_LOGI(TAG, "Command Length: %u", cmd_next_resp.command_len);
+                ESP_LOGI(TAG, "Data: %s", cmd_next_resp.data);
+                ESP_LOGI(TAG, "Data Length: %u", cmd_next_resp.data_len);
+                ESP_LOGI(TAG, "Status: %s", cmd_next_resp.status);
+                ESP_LOGI(TAG, "Data Type: %u", cmd_next_resp.data_type);
+                ESP_LOGI(TAG, "Issued At: %llu", cmd_next_resp.issued_at);
+                ESP_LOGI(TAG, "Updated At: %llu", cmd_next_resp.updated);
+                ESP_LOGI(TAG, "Next Available: %s", cmd_next_resp.nextavailable ? "true" : "false");
+            }else{
+                ESP_LOGI(TAG, "No command available");
+            }
         }
     }
     else

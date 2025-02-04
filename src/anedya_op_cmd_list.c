@@ -1,6 +1,6 @@
 #include "anedya_operations.h"
 
-anedya_err_t anedya_op_cmd_list(anedya_client_t *client, anedya_txn_t *txn, anedya_req_cmd_list_obj_t obj)
+anedya_err_t anedya_op_cmd_get_list(anedya_client_t *client, anedya_txn_t *txn, anedya_req_cmd_list_t obj)
 {
     // First check if client is already connected or not
     if (client->is_connected == 0)
@@ -9,7 +9,7 @@ anedya_err_t anedya_op_cmd_list(anedya_client_t *client, anedya_txn_t *txn, aned
     }
 
     // If it is connected, then create a txn
-    txn->_op = ANEDYA_OP_CMD_QUEUED_OBJ;
+    txn->_op = ANEDYA_OP_CMD_GET_LIST;
     anedya_err_t err = _anedya_txn_register(client, txn);
     if (err != ANEDYA_OK)
     {
@@ -49,7 +49,7 @@ anedya_err_t anedya_op_cmd_list(anedya_client_t *client, anedya_txn_t *txn, aned
     return ANEDYA_OK;
 }
 
-void _anedya_op_command_handle_queued_obj_resp(anedya_client_t *client, anedya_txn_t *txn)
+void _anedya_op_command_handle_list_resp(anedya_client_t *client, anedya_txn_t *txn)
 {
 
     // printf("Resp: %s\n", txn->_rxbody);
@@ -86,7 +86,7 @@ void _anedya_op_command_handle_queued_obj_resp(anedya_client_t *client, anedya_t
     }
 
     // Flow reaches here means, request was successful.
-    anedya_op_cmd_queued_obj_resp_t *resp = (anedya_op_cmd_queued_obj_resp_t *)txn->response;
+    anedya_op_cmd_list_resp_t *resp = (anedya_op_cmd_list_resp_t *)txn->response;
 
     json_t const *totalcount_prop = json_getProperty(json, "totalcount");
     if (!totalcount_prop || JSON_INTEGER != json_getType(totalcount_prop))
@@ -105,6 +105,11 @@ void _anedya_op_command_handle_queued_obj_resp(anedya_client_t *client, anedya_t
         return;
     }
     resp->count = (int)json_getInteger(count_prop);
+    if(resp->count==0){
+        resp->is_available = false;
+        return;
+    }
+    resp->is_available = true;
 
     json_t const *next_prop = json_getProperty(json, "next");
     if (!next_prop || JSON_INTEGER != json_getType(next_prop))

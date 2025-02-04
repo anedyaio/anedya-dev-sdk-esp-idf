@@ -28,7 +28,7 @@
 #define ANEDYA_OP_VALUESTORE_GET 10
 #define ANEDYA_OP_VALUESTORE_GET_LIST 11
 #define ANEDYA_OP_VALUESTORE_DELETE 12
-#define ANEDYA_OP_CMD_QUEUED_OBJ 13
+#define ANEDYA_OP_CMD_GET_LIST 13
 #define ANEDYA_OP_CMD_NEXT 14
 
 // Anedya Events
@@ -379,7 +379,7 @@ anedya_err_t anedya_op_cmd_status_update(anedya_client_t *client, anedya_txn_t *
  *
  * @param[in] client Pointer to the `anedya_client_t` structure representing the client.
  * @param[inout] txn Pointer to an `anedya_txn_t` structure for the valuestore transaction.
- * @param[in] obj Pointer to an `anedya_req_cmd_list_obj_t` structure containing the list of commands to retrieve.
+ * @param[in] obj Pointer to an `anedya_req_cmd_list_t` structure containing the list of commands to retrieve.
  *
  * @retval - `ANEDYA_OK` if the valuestore entry is successfully retrieved.
  * @retval - `ANEDYA_ERR_NOT_CONNECTED` if the client is not connected to the server.
@@ -389,7 +389,7 @@ anedya_err_t anedya_op_cmd_status_update(anedya_client_t *client, anedya_txn_t *
  * @warning This function uses static or dynamic allocation based on configuration macros.
  *          Ensure the appropriate allocation macros are defined.
  */
-anedya_err_t anedya_op_cmd_list(anedya_client_t *client, anedya_txn_t *txn, anedya_req_cmd_list_obj_t obj);
+anedya_err_t anedya_op_cmd_get_list(anedya_client_t *client, anedya_txn_t *txn, anedya_req_cmd_list_t obj);
 /**
  * @brief Retrieve the next command for execution from Anedya.
  *
