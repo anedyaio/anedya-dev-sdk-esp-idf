@@ -389,7 +389,7 @@ anedya_err_t anedya_op_cmd_status_update(anedya_client_t *client, anedya_txn_t *
  * @warning This function uses static or dynamic allocation based on configuration macros.
  *          Ensure the appropriate allocation macros are defined.
  */
-anedya_err_t anedya_op_cmd_queued_obj(anedya_client_t *client, anedya_txn_t *txn, anedya_req_cmd_list_obj_t obj);
+anedya_err_t anedya_op_cmd_list(anedya_client_t *client, anedya_txn_t *txn, anedya_req_cmd_list_obj_t obj);
 /**
  * @brief Retrieve the next command for execution from Anedya.
  *

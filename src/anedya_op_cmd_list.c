@@ -1,6 +1,6 @@
 #include "anedya_operations.h"
 
-anedya_err_t anedya_op_cmd_queued_obj(anedya_client_t *client, anedya_txn_t *txn, anedya_req_cmd_list_obj_t obj)
+anedya_err_t anedya_op_cmd_list(anedya_client_t *client, anedya_txn_t *txn, anedya_req_cmd_list_obj_t obj)
 {
     // First check if client is already connected or not
     if (client->is_connected == 0)
