@@ -130,8 +130,47 @@ void app_main(void)
     }
     ESP_LOGI("CLIENT", "Waiting for MQTT Connection");
     xEventGroupWaitBits(event_group, BIT3, pdFALSE, pdFALSE, 30000 / portTICK_PERIOD_MS);
+    ESP_LOGI("Prov", "MQTT Connected");
 
-    // =============================================== Operations ================================================================
+// =============================================== Operations ================================================================
+#ifdef CONFIG_EN_PROVISIONING
+    anedya_txn_t bind_txn;
+    anedya_txn_register_callback(&bind_txn, TXN_COMPLETE, &current_task);
+    anedya_req_bind_device_t req = {
+        .binding_secret = CONFIG_BINDING_KEY,
+        .binding_secret_len = strlen(CONFIG_BINDING_KEY)};
+    ESP_LOGI("Prov", "Sending Binding Details");
+    aerr = anedya_device_bind_req(&anedya_client, &bind_txn, &req);
+    if (aerr != ANEDYA_OK)
+    {
+        ESP_LOGI("Prov", "%d", aerr);
+    }
+
+    xTaskNotifyWait(0x00, ULONG_MAX, &ulNotifiedValue, 30000 / portTICK_PERIOD_MS);
+    ESP_LOGI("Prov", "Waiting for TXN to complete!");
+
+    if (ulNotifiedValue == 0x01)
+    {
+        if (bind_txn.is_complete)
+        {
+            if (bind_txn.is_success)
+            {
+                ESP_LOGI("Prov", "Binding Successful");
+            }
+            else
+            {
+                ESP_LOGI("Prov", "Binding Failed");
+            }
+        }
+    }
+    else
+    {
+        ESP_LOGI("Binding", "TXN Timeout");
+    }
+    ulNotifiedValue = 0x00;
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
+#endif
+
     xTaskCreate(ota_management_task, "OTA", 10240, &gatewaystate, 1, NULL);    // Start OTA Task
     xTaskCreate(submitData_task, "SUBMITDATA", 4096, NULL, 2, NULL);           // Start Submit Data Task
     xTaskCreate(valueStore_task, "VALUESTORE", 10240, NULL, 4, NULL);          // Start Valuestore Task
