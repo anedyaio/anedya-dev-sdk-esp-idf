@@ -10,7 +10,7 @@ menu "Device and Anedya Configuration"
             bool "Enable Provisioning"
             default false
         config BINDING_KEY
-            string "BINDING KEY"
+            string "BINDING SECRET"
             default ""
             help
                 Binding key to helps to bind the device.
