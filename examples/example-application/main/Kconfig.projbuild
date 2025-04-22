@@ -6,6 +6,15 @@ menu "Device and Anedya Configuration"
             default ""
             help
                 Connection key to connect to anedya.
+        config EN_PROVISIONING
+            bool "Enable Provisioning"
+            default false
+        config BINDING_KEY
+            string "BINDING KEY"
+            default ""
+            help
+                Binding key to helps to bind the device.
+                depends on EN_PROVISIONING
         config PHYSICAL_DEVICE_ID
             string "PHYSICAL DEVICE ID"
             default ""

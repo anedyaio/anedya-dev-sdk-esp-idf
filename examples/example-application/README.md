@@ -53,6 +53,9 @@ To configure your project with the correct settings in ESP-IDF, follow these ste
    - Provide the following credentials:
      - **Connection Key**
      - **Physical Device ID**
+     - **Binding Key** (In case you haven't pre-authorized the device and you need to bind the device)
+
+> **Note**: Ensure you have pre-authorized or bound the device with the node, otherwise Anedya will take the device as unauthorized.
 
 6. **Configure Wi-Fi Credentials**:
    - Provide your Wi-Fi details:
