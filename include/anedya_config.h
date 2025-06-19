@@ -1,4 +1,5 @@
 #pragma once
+#include "anedya_ext.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -15,6 +16,7 @@ extern "C"
         unsigned int connection_key_len;
         anedya_device_id_t device_id;
         anedya_device_id_str_t _device_id_str;
+        anedya_ext_config_t ext_config;
 // MQTT Callbacks
 #ifdef ANEDYA_CONNECTION_METHOD_MQTT
         anedya_on_connect_cb_t on_connect;

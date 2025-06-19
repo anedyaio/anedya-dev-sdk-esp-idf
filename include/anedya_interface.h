@@ -20,6 +20,8 @@ See config.h for tuning operations of this library.
 #include "anedya_err.h"
 #include "anedya_sdk_config.h"
 #include "anedya_commons.h"
+#include "anedya_config.h"
+#include "ai_esp_interfaces/anedya_esp_interface.h"
 
 #ifdef __cplusplus
 extern "C" {

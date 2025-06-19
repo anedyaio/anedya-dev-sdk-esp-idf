@@ -34,6 +34,8 @@ static const anedya_err_msg_t anedya_err_msg_table[] = {
     ERR_TBL_IT(ANEDYA_ERR_INVALID_DATA),
     ERR_TBL_IT(ANEDYA_ERR_VALUE_TOO_LONG),
     ERR_TBL_IT(ANEDYA_ERR_VALUE_MISMATCH_LEN),
+    ERR_TBL_IT(ANEDYA_EXT_ERR),
+    ERR_TBL_IT(ANEDYA_ERR_EXT_TIMEOUT),
 };
 
 #endif

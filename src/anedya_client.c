@@ -212,19 +212,26 @@ void _anedya_message_handler(anedya_client_t *cl, char *topic, int topic_len, ch
 void _anedya_on_connect_handler(anedya_client_t *client)
 {
     // Client just got connected to the broker, now subscribe to the topics
-    client->is_connected = 1;
     anedya_interface_mqtt_subscribe(client->mqtt_client, client->_message_topics[0], strlen(client->_message_topics[0]), 0);
     anedya_interface_mqtt_subscribe(client->mqtt_client, client->_message_topics[1], strlen(client->_message_topics[1]), 0);
-    anedya_interface_mqtt_subscribe(client->mqtt_client, client->_message_topics[2], strlen(client->_message_topics[2]), 0);
     anedya_interface_mqtt_subscribe(client->mqtt_client, client->_message_topics[3], strlen(client->_message_topics[2]), 0);
+    anedya_interface_mqtt_subscribe(client->mqtt_client, client->_message_topics[2], strlen(client->_message_topics[2]), 0);
+    client->is_connected = 1;
     if (client->config->on_connect != NULL)
     {
         client->config->on_connect(client->config->on_connect_ctx);
     }
+    return;
 }
 
 void _anedya_on_disconnect_handler(anedya_client_t *client)
 {
+    // Call the callback
+    if (client->config->on_disconnect != NULL)
+    {
+        client->config->on_disconnect(client->config->on_disconnect_ctx);
+    }
+
     if (client->is_connected == 1)
     {
         // This means the flow is coming from unintentional connection close
@@ -233,11 +240,7 @@ void _anedya_on_disconnect_handler(anedya_client_t *client)
         anedya_interface_mqtt_connect(client->mqtt_client);
         // TODO: Implement retry logic
     }
-    // Call the callback
-    if (client->config->on_disconnect != NULL)
-    {
-        client->config->on_disconnect(client->config->on_disconnect_ctx);
-    }
+    return;
 }
 
 void _anedya_handle_txn_response(anedya_client_t *cl, char *payload, int payload_len, uint8_t topic)
@@ -278,67 +281,78 @@ void _anedya_handle_txn_response(anedya_client_t *cl, char *payload, int payload
     {
         _anedya_interface_std_out("Error, invalid txn id");
     }
-    // Search for the txn in the txn store
-    anedya_txn_t *txn = cl->txn_store.txns[index - 1];
-    strcpy(txn->_rxbody, buffer);
-    txn->_rx_len = str_len + 1;
-    if (txn->_rx_len > ANEDYA_RX_BUFFER_SIZE)
+    else
     {
-        txn->_op_err = ANEDYA_ERR_RX_BUFFER_OVERFLOW;
-        txn->is_complete = true;
-        txn->is_success = false;
+
+        // Search for the txn in the txn store
+        anedya_txn_t *txn = cl->txn_store.txns[index - 1];
+        if (txn == NULL)
+        {
+            return;
+        }
+        else
+        {
+            strcpy(txn->_rxbody, buffer);
+        }
+        txn->_rx_len = str_len + 1;
+        if (txn->_rx_len > ANEDYA_RX_BUFFER_SIZE)
+        {
+            txn->_op_err = ANEDYA_ERR_RX_BUFFER_OVERFLOW;
+            txn->is_complete = true;
+            txn->is_success = false;
+            _anedya_txn_complete(cl, txn);
+            return;
+        }
+        // printf("Rx Body: %s", txn->_rxbody);
+        //  Call the Operation handler
+        switch (txn->_op)
+        {
+        case ANEDYA_OP_BIND_DEVICE:
+            _anedya_device_handle_generic_resp(cl, txn);
+            break;
+        case ANEDYA_OP_HEARTBEAT:
+            _anedya_device_handle_generic_resp(cl, txn);
+            break;
+        case ANEDYA_OP_OTA_NEXT:
+            _anedya_op_ota_next_resp(cl, txn);
+            break;
+        case ANEDYA_OP_SUBMIT_DATA:
+            _anedya_device_handle_generic_resp(cl, txn);
+            break;
+        case ANEDYA_OP_VALUESTORE_SET:
+            _anedya_device_handle_generic_resp(cl, txn);
+            break;
+        case ANEDYA_OP_SUBMIT_EVENT:
+            _anedya_device_handle_generic_resp(cl, txn);
+            break;
+        case ANEDYA_OP_CMD_UPDATE_STATUS:
+            _anedya_device_handle_generic_resp(cl, txn);
+            break;
+        case ANEDYA_OP_SUBMIT_LOG:
+            _anedya_device_handle_generic_resp(cl, txn);
+            break;
+        case ANEDYA_OP_VALUESTORE_GET:
+            _anedya_op_valuestore_handle_get_resp(cl, txn);
+            break;
+        case ANEDYA_OP_VALUESTORE_GET_LIST:
+            _anedya_op_valuestore_handle_list_obj_resp(cl, txn);
+            break;
+        case ANEDYA_OP_VALUESTORE_DELETE:
+            _anedya_device_handle_generic_resp(cl, txn);
+            break;
+        case ANEDYA_OP_CMD_GET_LIST:
+            _anedya_op_command_handle_list_resp(cl, txn);
+            break;
+        case ANEDYA_OP_CMD_NEXT:
+            _anedya_op_cmd_handle_next_resp(cl, txn);
+            break;
+        default:
+            // Do nothing
+            break;
+        }
+        // Mark transaction as completed
         _anedya_txn_complete(cl, txn);
-        return;
     }
-    // printf("Rx Body: %s", txn->_rxbody);
-    //  Call the Operation handler
-    switch (txn->_op)
-    {
-    case ANEDYA_OP_BIND_DEVICE:
-        _anedya_device_handle_generic_resp(cl, txn);
-        break;
-    case ANEDYA_OP_HEARTBEAT:
-        _anedya_device_handle_generic_resp(cl, txn);
-        break;
-    case ANEDYA_OP_OTA_NEXT:
-        _anedya_op_ota_next_resp(cl, txn);
-        break;
-    case ANEDYA_OP_SUBMIT_DATA:
-        _anedya_device_handle_generic_resp(cl, txn);
-        break;
-    case ANEDYA_OP_VALUESTORE_SET:
-        _anedya_device_handle_generic_resp(cl, txn);
-        break;
-    case ANEDYA_OP_SUBMIT_EVENT:
-        _anedya_device_handle_generic_resp(cl, txn);
-        break;
-    case ANEDYA_OP_CMD_UPDATE_STATUS:
-        _anedya_device_handle_generic_resp(cl, txn);
-        break;
-    case ANEDYA_OP_SUBMIT_LOG:
-        _anedya_device_handle_generic_resp(cl, txn);
-        break;
-    case ANEDYA_OP_VALUESTORE_GET:
-        _anedya_op_valuestore_handle_get_resp(cl, txn);
-        break;
-    case ANEDYA_OP_VALUESTORE_GET_LIST:
-        _anedya_op_valuestore_handle_list_obj_resp(cl, txn);
-        break;
-    case ANEDYA_OP_VALUESTORE_DELETE:
-        _anedya_device_handle_generic_resp(cl, txn);
-        break;
-    case ANEDYA_OP_CMD_GET_LIST:
-        _anedya_op_command_handle_list_resp(cl,txn);
-        break;
-    case ANEDYA_OP_CMD_NEXT:
-        _anedya_op_cmd_handle_next_resp(cl,txn);
-        break;
-    default:
-        // Do nothing
-        break;
-    }
-    // Mark transaction as completed
-    _anedya_txn_complete(cl, txn);
     // If not found, handle error
     return;
 }

@@ -1,4 +1,16 @@
 menu "Anedya SDK Settings"
+    choice
+        prompt "Select network interface for connection with Anedya"
+        default ASDK_NI_WIFI
+        
+        config ASDK_NI_WIFI
+            bool "Wi-Fi"
+        config ASDK_NI_SIMNET_QUECTEL
+            bool "SIM Network (Quectel)"
+        config ASDK_NI_SIMNET_SIMCOM
+            bool "SIM Network (Simcom)"
+    endchoice
+    
     choice "Connection Method"
         prompt "Select protocol for connection with Anedya"
         default CONN_ANEDYA_MQTT

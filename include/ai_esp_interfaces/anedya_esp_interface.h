@@ -1,3 +1,5 @@
+#include "anedya_sdk_config.h"
+
 #ifndef _ANEDYA_ESP_INTERFACE_H_
 #define _ANEDYA_ESP_INTERFACE_H_
 
@@ -7,7 +9,9 @@
 #include "esp_netif.h"
 #include "esp_system.h"
 #include <sys/param.h>
-#include "esp_tls.h"
 #include "mqtt_client.h"
+#include "esp_tls.h"
+
+#include "ai_esp_interfaces/anedya_quectel_extension.h"
 
 #endif

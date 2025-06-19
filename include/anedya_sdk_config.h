@@ -12,8 +12,35 @@
 #define ANEDYA_ENABLE_VALUESTORE
 #define ANEDYA_ENABLE_DEBUG_OUTPUT
 
-// #define ANEDYA_EMBED_PEM    // Enable this to embed certificates in PEM format
+/**
+ * Define the network interface to be used by the Device
+ */
+
+/*======================================*/
+#ifdef CONFIG_ASDK_NI_WIFI
+#define ASDK_NI_WIFI
+#endif
+/*======================================*/
+
+/*======================================*/
+#ifdef CONFIG_ASDK_NI_SIMNET_QUECTEL
+#define ASDK_NI_MODEM_QUECTEL
+#endif
+
+/*======================================*/
+
+
+/*======================================*/
+// select certificate usage 
+#ifdef ASDK_NI_WIFI
 #define ANEDYA_EMBED_DER // Enable this to embed certificates in DER format
+#endif
+
+#ifdef ASDK_NI_MODEM_QUECTEL
+#define ANEDYA_EMBED_PEM    // Enable this to embed certificates in PEM format
+#endif
+/*======================================*/
+
 
 #if defined(ANEDYA_EMBED_PEM) && defined(ANEDYA_EMBED_DER)
 #warning "Embedding certifciates in both PEM and DER format can increase binary size"
@@ -25,6 +52,9 @@
 
 #define ANEDYA_TLS_ENABLE_ECC // Using ECC can save roughly 400 bytes of static storage
 // #define ANEDYA_TLS_ENABLE_RSA
+
+
+
 
 /*
 This setting defines the method which is used to connect with the platform.
