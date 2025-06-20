@@ -1,9 +1,8 @@
 #include "anedya_interface.h"
 #include "ai_esp_interfaces/anedya_esp_interface.h"
 
-
 #ifdef ASDK_NI_MODEM_QUECTEL
-// Network Interface is Quectel Modem
+// Network Interface is Sim Network Quectel
 
 #include "anedya_certs.h"
 #include "anedya_client.h"
@@ -16,11 +15,10 @@
 static const char *TAG = "ANEDYA_QESPI";
 static short debug_level = 0;
 
-static short UART_PORT_NUMBER = -1;
 
 static esp_mqtt_client_config_t mqtt_cfg;
-esp_mqtt_client_handle_t client;
 
+static short UART_PORT_NUMBER = -1;
 static SemaphoreHandle_t uart_port_mutex;
 
 #define UNKONWN_CMD -1
@@ -28,8 +26,16 @@ static SemaphoreHandle_t uart_port_mutex;
 #define MODEM_RESP_WAIT 1
 static unsigned int CMD_TYPE = MODEM_CMD_EX_ASAP;
 
+#ifdef ANEDYA_ENABLE_STATIC_ALLOCATION
 static uint8_t response_topic[150];
 static uint8_t modem_response[ANEDYA_RX_BUFFER_SIZE];
+static uint8_t dtmp[200] = {0};
+
+#endif
+#ifdef ANEDYA_ENABLE_DYNAMIC_ALLOCATION
+// TODO: Implement dynamic allocation
+#endif
+
 static unsigned int modem_response_len = 0;
 static bool more_data_available = false;
 
@@ -44,7 +50,6 @@ static EventGroupHandle_t MqttEvents;
 
 #define PATTERN_CHR_NUM (3) /*!< Set the number of consecutive and identical characters received by receiver which defines a UART pattern*/
 static uint8_t pat[PATTERN_CHR_NUM + 1];
-static uint8_t dtmp[200] = {0};
 
 static void _uart_event_task(void *pvParameters);
 static anedya_err_t _anedya_ext_clear_uart_buffer(anedya_client_t *anedya_client);
@@ -434,20 +439,20 @@ anedya_err_t _anedya_ext_send_AT_command(char *cmd, unsigned int cmd_type, char 
     return ANEDYA_OK;
 }
 
-anedya_err_t anedya_ext_uart_init(anedya_client_t *parent)
+anedya_err_t anedya_ext_uart_init(anedya_client_t *client)
 {
-    UART_PORT_NUMBER = parent->config->ext_config.uart_port_num;
-    if (parent->config->ext_config.uart_port_num == -1)
+    UART_PORT_NUMBER = client->config->ext_config.uart_port_num;
+    if (client->config->ext_config.uart_port_num == -1)
     {
         ESP_LOGE(TAG, "Invalid port number passed to uart init");
         return ANEDYA_EXT_ERR;
     }
-    if (parent->config->ext_config.queuehandle == NULL)
+    if (client->config->ext_config.queuehandle == NULL)
     {
         ESP_LOGE(TAG, "Invalid queue handler passed to uart init");
         return ANEDYA_EXT_ERR;
     }
-    unsigned int UART_PORT_NUM = parent->config->ext_config.uart_port_num;
+    unsigned int UART_PORT_NUM = client->config->ext_config.uart_port_num;
     ModemEvents = xEventGroupCreate();
     MqttEvents = xEventGroupCreate();
     uart_port_mutex = xSemaphoreCreateMutex();
@@ -466,7 +471,7 @@ anedya_err_t anedya_ext_uart_init(anedya_client_t *parent)
     }
 
     // Create the task
-    if (xTaskCreate(_uart_event_task, "uart_event_task", 8096, parent, 1, NULL) != pdPASS)
+    if (xTaskCreate(_uart_event_task, "uart_event_task", 8096, client, 1, NULL) != pdPASS)
     {
         ESP_LOGE(TAG, "Could not create uart event task");
         return ANEDYA_EXT_ERR;
@@ -477,7 +482,7 @@ anedya_err_t anedya_ext_uart_init(anedya_client_t *parent)
 
     err = _anedya_ext_send_AT_command("ATE0\r\n", MODEM_CMD_EX_ASAP, NULL, "OK", 2000); // disable echo
 
-    if (xTaskCreate(_anedya_ext_mqtt_event_task, "MQTT_EVENT_TASK", 8192, parent, 2, NULL) != pdPASS)
+    if (xTaskCreate(_anedya_ext_mqtt_event_task, "MQTT_EVENT_TASK", 8192, client, 2, NULL) != pdPASS)
     {
         ESP_LOGE(TAG, "Failed to create MQTT Event task");
     }
@@ -494,7 +499,14 @@ anedya_err_t anedya_ext_restore_settings_to_factory_defaults(anedya_client_t *cl
     // if (value < 0)
     //     return ANEDYA_EXT_ERR;
     xSemaphoreTake(uart_port_mutex, (timeout + 5000) / portTICK_PERIOD_MS);
+#ifdef ANEDYA_ENABLE_STATIC_ALLOCATION
     char AT_cmd[20];
+
+#endif
+#ifdef ANEDYA_ENABLE_DYNAMIC_ALLOCATION
+// TODO: Implement dynamic allocation
+#endif
+
     sprintf(AT_cmd, "AT&F\r\n");
     anedya_err_t err = _anedya_ext_send_AT_command(AT_cmd, MODEM_RESP_WAIT, NULL, "OK", timeout);
     xSemaphoreGive(uart_port_mutex);
@@ -513,7 +525,13 @@ anedya_err_t anedya_ext_set_fun_mode(anedya_client_t *client, int fun, int rst, 
         return ANEDYA_EXT_ERR;
     }
     xSemaphoreTake(uart_port_mutex, (timeout + 5000) / portTICK_PERIOD_MS);
+#ifdef ANEDYA_ENABLE_STATIC_ALLOCATION
     char AT_cmd[30];
+
+#endif
+#ifdef ANEDYA_ENABLE_DYNAMIC_ALLOCATION
+// TODO: Implement dynamic allocation
+#endif
     if (fun != NULL && rst != NULL)
     {
         sprintf(AT_cmd, "AT+CFUN=%d,%d\r\n", fun, rst);
@@ -560,7 +578,14 @@ anedya_err_t anedya_ext_network_reg_status(anedya_client_t *client, int *stat, i
         ESP_LOGE(TAG, "stat is null!");
         return ANEDYA_EXT_ERR;
     }
+#ifdef ANEDYA_ENABLE_STATIC_ALLOCATION
     char s_response[20] = {0};
+
+#endif
+#ifdef ANEDYA_ENABLE_DYNAMIC_ALLOCATION
+// TODO: Implement dynamic allocation
+#endif
+
     xSemaphoreTake(uart_port_mutex, (timeout + 5000) / portTICK_PERIOD_MS);
     anedya_err_t err = ANEDYA_EXT_ERR;
     err = _anedya_ext_send_AT_command("ATE0\r\n", MODEM_CMD_EX_ASAP, NULL, "OK", 2000); // disable echo
@@ -587,7 +612,14 @@ anedya_err_t anedya_ext_network_operator(anedya_client_t *client, int *mode, int
         ESP_LOGE(TAG, "mode is null!");
         return ANEDYA_EXT_ERR;
     }
+#ifdef ANEDYA_ENABLE_STATIC_ALLOCATION
     char s_response[20] = {0};
+
+#endif
+#ifdef ANEDYA_ENABLE_DYNAMIC_ALLOCATION
+// TODO: Implement dynamic allocation
+#endif
+
     xSemaphoreTake(uart_port_mutex, (timeout + 5000) / portTICK_PERIOD_MS);
     anedya_err_t err = ANEDYA_EXT_ERR;
     err = _anedya_ext_send_AT_command("ATE0\r\n", MODEM_CMD_EX_ASAP, NULL, "OK", 2000); // disable echo
@@ -609,7 +641,14 @@ anedya_err_t anedya_ext_signal_quality(anedya_client_t *client, int *rssi, int *
         ESP_LOGE(TAG, "Invalid port number");
         return ANEDYA_EXT_ERR;
     }
+#ifdef ANEDYA_ENABLE_STATIC_ALLOCATION
     char s_response[20] = {0};
+
+#endif
+#ifdef ANEDYA_ENABLE_DYNAMIC_ALLOCATION
+// TODO: Implement dynamic allocation
+#endif
+
     if (rssi == NULL)
     {
         ESP_LOGE(TAG, "rssi is null");
@@ -639,22 +678,17 @@ anedya_err_t anedya_ext_signal_quality(anedya_client_t *client, int *rssi, int *
     return err;
 }
 
-anedya_err_t anedya_ext_pdp_context_status(anedya_client_t *client, char *pdp_context, int timeout)
+anedya_err_t anedya_ext_pdp_context_status(anedya_client_t *client, char *pdp_context_out, int timeout)
 {
     if (client->config->ext_config.uart_port_num == -1)
     {
         ESP_LOGE(TAG, "Invalid port number");
         return ANEDYA_EXT_ERR;
     }
-    if (pdp_context == NULL)
-    {
-        ESP_LOGE(TAG, "pdp context is null!");
-        return ANEDYA_EXT_ERR;
-    }
     xSemaphoreTake(uart_port_mutex, (timeout + 5000) / portTICK_PERIOD_MS);
     anedya_err_t err = ANEDYA_EXT_ERR;
     err = _anedya_ext_send_AT_command("ATE0\r\n", MODEM_CMD_EX_ASAP, NULL, "OK", 2000); // disable echo
-    err = _anedya_ext_send_AT_command("AT+CGDCONT?\r\n", MODEM_RESP_WAIT, pdp_context, "+CGDCONT:", timeout);
+    err = _anedya_ext_send_AT_command("AT+CGDCONT?\r\n", MODEM_RESP_WAIT, pdp_context_out, "+CGDCONT:", timeout);
     xSemaphoreGive(uart_port_mutex);
     return err;
 }
@@ -673,7 +707,14 @@ anedya_err_t anedya_ext_activate_pdp_context(anedya_client_t *client, int cid, i
     xSemaphoreTake(uart_port_mutex, (timeout + 5000) / portTICK_PERIOD_MS);
     anedya_err_t err = ANEDYA_EXT_ERR;
     err = _anedya_ext_send_AT_command("ATE0\r\n", MODEM_CMD_EX_ASAP, NULL, NULL, timeout); // disable echo
+#ifdef ANEDYA_ENABLE_STATIC_ALLOCATION
     char AT_cmd[30] = {0};
+
+#endif
+#ifdef ANEDYA_ENABLE_DYNAMIC_ALLOCATION
+// TODO: Implement dynamic allocation
+#endif
+
     sprintf(AT_cmd, "AT+QIACT=%d\r\n", cid);
     err = _anedya_ext_send_AT_command(AT_cmd, MODEM_RESP_WAIT, NULL, "OK", timeout);
     xSemaphoreGive(uart_port_mutex);
@@ -694,29 +735,31 @@ anedya_err_t anedya_ext_deactivate_pdp_context(anedya_client_t *client, int cid,
     xSemaphoreTake(uart_port_mutex, (timeout + 5000) / portTICK_PERIOD_MS);
     anedya_err_t err = ANEDYA_EXT_ERR;
     err = _anedya_ext_send_AT_command("ATE0\r\n", MODEM_CMD_EX_ASAP, NULL, NULL, timeout); // disable echo
+#ifdef ANEDYA_ENABLE_STATIC_ALLOCATION
     char AT_cmd[30] = {0};
+
+#endif
+#ifdef ANEDYA_ENABLE_DYNAMIC_ALLOCATION
+// TODO: Implement dynamic allocation
+#endif
+
     sprintf(AT_cmd, "AT+QIDEACT=%d\r\n", cid);
     err = _anedya_ext_send_AT_command(AT_cmd, MODEM_RESP_WAIT, NULL, "OK", timeout);
     xSemaphoreGive(uart_port_mutex);
     return err;
 }
 
-anedya_err_t anedya_ext_read_pdp_context(anedya_client_t *client, char *pdp_context, int timeout)
+anedya_err_t anedya_ext_read_pdp_context(anedya_client_t *client, char *pdp_context_out, int timeout)
 {
     if (client->config->ext_config.uart_port_num == -1)
     {
         ESP_LOGE(TAG, "Invalid port number");
         return ANEDYA_EXT_ERR;
     }
-    if (pdp_context == NULL)
-    {
-        ESP_LOGE(TAG, "pdp context is null!");
-        return ANEDYA_EXT_ERR;
-    }
     xSemaphoreTake(uart_port_mutex, (timeout + 5000) / portTICK_PERIOD_MS);
     anedya_err_t err = ANEDYA_EXT_ERR;
     err = _anedya_ext_send_AT_command("ATE0\r\n", MODEM_CMD_EX_ASAP, NULL, "OK", 2000); // disable echo
-    err = _anedya_ext_send_AT_command("AT+QIACT?\r\n", MODEM_RESP_WAIT, pdp_context, "+QIACT:", timeout);
+    err = _anedya_ext_send_AT_command("AT+QIACT?\r\n", MODEM_RESP_WAIT, pdp_context_out, "+QIACT:", timeout);
     xSemaphoreGive(uart_port_mutex);
     return err;
 }
@@ -728,7 +771,14 @@ anedya_err_t anedya_ext_net_check(anedya_client_t *client, char *url, int timeou
         ESP_LOGE(TAG, "URL too long, exceeds 100 characters");
         return ANEDYA_EXT_ERR;
     }
+#ifdef ANEDYA_ENABLE_STATIC_ALLOCATION
     char AT_cmd[100];
+
+#endif
+#ifdef ANEDYA_ENABLE_DYNAMIC_ALLOCATION
+// TODO: Implement dynamic allocation
+#endif
+
     sprintf(AT_cmd, "AT+QPING=1,\"%s\",%d,1\r\n", url, timeout / 1000);
     xSemaphoreTake(uart_port_mutex, (timeout + 5000) / portTICK_PERIOD_MS);
     anedya_err_t err = _anedya_ext_send_AT_command(AT_cmd, MODEM_RESP_WAIT, NULL, "+QPING:", timeout);
@@ -739,7 +789,14 @@ anedya_err_t anedya_ext_net_check(anedya_client_t *client, char *url, int timeou
 anedya_err_t anedya_ext_set_apn(anedya_client_t *client, int cid, char *ip_ver, char *apn, char *user, char *pass)
 {
     xSemaphoreTake(uart_port_mutex, portMAX_DELAY);
+#ifdef ANEDYA_ENABLE_STATIC_ALLOCATION
     char at_cmd[100] = {0};
+
+#endif
+#ifdef ANEDYA_ENABLE_DYNAMIC_ALLOCATION
+// TODO: Implement dynamic allocation
+#endif
+
     sprintf(at_cmd, "AT+CGDCONT=%d,\"%s\",\"%s\"\r\n", cid, ip_ver, apn);
     anedya_err_t err = _anedya_ext_send_AT_command(at_cmd, MODEM_RESP_WAIT, NULL, "OK", 2000);
     xSemaphoreGive(uart_port_mutex);
@@ -754,7 +811,7 @@ static anedya_err_t _anedya_ext_clear_uart_buffer(anedya_client_t *anedya_client
         return ANEDYA_EXT_ERR;
     }
     size_t buffered_len = 0;
-      QueueHandle_t uart_queue = (QueueHandle_t)anedya_client->config->ext_config.queuehandle;
+    QueueHandle_t uart_queue = (QueueHandle_t)anedya_client->config->ext_config.queuehandle;
     ESP_ERROR_CHECK(uart_get_buffered_data_len(anedya_client->config->ext_config.uart_port_num, &buffered_len));
     for (int i = 0; i < buffered_len; i++)
     {
@@ -773,15 +830,21 @@ anedya_err_t anedya_ext_get_modem_time(anedya_client_t *client, int mode, char *
         return ANEDYA_EXT_ERR;
     }
     xSemaphoreTake(uart_port_mutex, portMAX_DELAY);
-
+#ifdef ANEDYA_ENABLE_STATIC_ALLOCATION
     char temp[50];
     char AT_cmd[20];
+
+#endif
+#ifdef ANEDYA_ENABLE_DYNAMIC_ALLOCATION
+// TODO: Implement dynamic allocation
+#endif
+
     sprintf(AT_cmd, "AT+QLTS=%d\r\n", mode);
     anedya_err_t err = _anedya_ext_send_AT_command(AT_cmd, MODEM_RESP_WAIT, temp, "+QLTS:", 10000);
     if (err == ANEDYA_OK)
     {
         sscanf(temp, "+QLTS: \"%[^\"]\"", output_dateTime);
-        ESP_LOGI(TAG, "Modem Time: %s", output_dateTime);
+        // ESP_LOGI(TAG, "Modem Time: %s", output_dateTime);
     }
     xSemaphoreGive(uart_port_mutex);
     return err;
@@ -872,9 +935,15 @@ anedya_mqtt_client_handle_t _anedya_interface_mqtt_init(anedya_client_t *parent,
             .client_id = devid,
         },
     };
-
+#ifdef ANEDYA_ENABLE_STATIC_ALLOCATION
     char AT_cmd[300];
     char response[20] = {0};
+
+#endif
+#ifdef ANEDYA_ENABLE_DYNAMIC_ALLOCATION
+// TODO: Implement dynamic allocation
+#endif
+
     anedya_err_t err = ANEDYA_EXT_ERR;
     xSemaphoreTake(uart_port_mutex, portMAX_DELAY);
     err = _anedya_ext_send_AT_command("ATE0\r\n", MODEM_RESP_WAIT, NULL, "OK", 2000);
@@ -964,9 +1033,15 @@ anedya_err_t anedya_interface_mqtt_connect(anedya_mqtt_client_handle_t anclient)
         return ANEDYA_EXT_ERR;
     }
     // xSemaphoreTake(uart_port_mutex, portMAX_DELAY);
-
+#ifdef ANEDYA_ENABLE_STATIC_ALLOCATION
     char AT_cmd[300];
     char response[20] = {0};
+
+#endif
+#ifdef ANEDYA_ENABLE_DYNAMIC_ALLOCATION
+// TODO: Implement dynamic allocation
+#endif
+
     anedya_err_t err = ANEDYA_EXT_ERR;
     xSemaphoreTake(uart_port_mutex, portMAX_DELAY);
     sprintf(AT_cmd, "AT+QMTOPEN=0,\"%s\",8883\r\n", mqtt_cfg.broker.address.hostname);
@@ -1074,9 +1149,15 @@ anedya_err_t anedya_interface_mqtt_subscribe(anedya_mqtt_client_handle_t anclien
         ESP_LOGE(TAG, "Invalid port number");
         return ANEDYA_EXT_ERR;
     }
-
+#ifdef ANEDYA_ENABLE_STATIC_ALLOCATION
     char AT_cmd[300];
     char response[20] = {0};
+
+#endif
+#ifdef ANEDYA_ENABLE_DYNAMIC_ALLOCATION
+// TODO: Implement dynamic allocation
+#endif
+
     ESP_LOGI(TAG, "Subscribing to topic: %s", (char *)topic);
     snprintf(AT_cmd, sizeof(AT_cmd), "AT+QMTSUB=0,1,\"%s\",%d\r\n", (char *)topic, qos);
     xSemaphoreTake(uart_port_mutex, portMAX_DELAY);
@@ -1164,6 +1245,7 @@ anedya_err_t anedya_set_message_callback(anedya_mqtt_client_handle_t anclient, a
     return ANEDYA_OK;
 }
 #endif // end of ANEDYA_CONNECTION_METHOD_MQTT
+
 anedya_err_t anedya_ext_http_get_range_request(anedya_client_t *client, anedya_ext_net_reader_t *reader, char *url, int url_len, int starting_position, int readlen, int timeout)
 {
     if (client->config->ext_config.uart_port_num == -1)
@@ -1183,8 +1265,14 @@ anedya_err_t anedya_ext_http_get_range_request(anedya_client_t *client, anedya_e
     _anedya_ext_send_AT_command("AT+QSSLCFG=\"seclevel\",3,0\r\n", MODEM_RESP_WAIT, NULL, "OK", 5000);
     _anedya_ext_send_AT_command("AT+QSSLCFG=\"sni\",3,1\r\n", MODEM_RESP_WAIT, NULL, "OK", 5000);
     _anedya_ext_send_AT_command("AT+QSSLCFG=\"cacert\",3,\"UFS:anedya_tls_root_ca.pem\"\r\n", MODEM_RESP_WAIT, NULL, "OK", 5000);
-
+#ifdef ANEDYA_ENABLE_STATIC_ALLOCATION
     char AT_cmd[100] = {0};
+
+#endif
+#ifdef ANEDYA_ENABLE_DYNAMIC_ALLOCATION
+// TODO: Implement dynamic allocation
+#endif
+
     snprintf(AT_cmd, sizeof(AT_cmd), "AT+QHTTPURL=%d,80\r\n", url_len);
     if (_anedya_ext_send_AT_command(AT_cmd, MODEM_RESP_WAIT, NULL, "CONNECT", 80000) != ANEDYA_OK)
         return ANEDYA_EXT_ERR;
@@ -1202,8 +1290,15 @@ anedya_err_t anedya_ext_http_get_range_request(anedya_client_t *client, anedya_e
     ESP_LOGI("TX Command", "AT+QHTTPREAD=300\r\n");
     uart_write_bytes(client->config->ext_config.uart_port_num, "AT+QHTTPREAD=300\r\n", strlen("AT+QHTTPREAD=300\r\n"));
 
-    // --- Header Parsing Section ---
+// --- Header Parsing Section ---
+#ifdef ANEDYA_ENABLE_STATIC_ALLOCATION
     char header_buf[2048] = {0};
+
+#endif
+#ifdef ANEDYA_ENABLE_DYNAMIC_ALLOCATION
+// TODO: Implement dynamic allocation
+#endif
+
     int header_pos = 0;
     bool headers_done = false;
     bool content_length_found = false;
