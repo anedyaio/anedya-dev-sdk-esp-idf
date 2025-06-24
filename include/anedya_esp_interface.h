@@ -12,6 +12,6 @@
 #include "mqtt_client.h"
 #include "esp_tls.h"
 
-#include "ai_esp_interfaces/anedya_quectel_extension.h"
+#include "anedya_quectel_extension.h"
 
 #endif

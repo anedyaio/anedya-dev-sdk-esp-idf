@@ -1,5 +1,5 @@
 #include "anedya_interface.h"
-#include "ai_esp_interfaces/anedya_esp_interface.h"
+#include "anedya_esp_interface.h"
 
 #ifdef ASDK_NI_MODEM_QUECTEL
 // Network Interface is Sim Network Quectel
@@ -14,7 +14,6 @@
 
 static const char *TAG = "ANEDYA_QESPI";
 static short debug_level = 0;
-
 
 static esp_mqtt_client_config_t mqtt_cfg;
 
@@ -39,14 +38,14 @@ static uint8_t dtmp[200] = {0};
 static unsigned int modem_response_len = 0;
 static bool more_data_available = false;
 
-esp_mqtt_event_t mqtt_event;
+anedya_ext_mqtt_event_t mqtt_event;
 #define MQTT_EVENT_RECEIVE_DATA (BIT0)
 
 static EventGroupHandle_t ModemEvents;
 static EventGroupHandle_t MqttEvents;
 
 #define MODEM_EVENT_RECEIVE_DATA (BIT0)
-#define MODEM_EVENT_OTA_NOT_PROGRESS (BIT1)
+#define MODEM_EVENT_OTA_NOT_IN_PROGRESS (BIT1)
 
 #define PATTERN_CHR_NUM (3) /*!< Set the number of consecutive and identical characters received by receiver which defines a UART pattern*/
 static uint8_t pat[PATTERN_CHR_NUM + 1];
@@ -54,8 +53,8 @@ static uint8_t pat[PATTERN_CHR_NUM + 1];
 static void _uart_event_task(void *pvParameters);
 static anedya_err_t _anedya_ext_clear_uart_buffer(anedya_client_t *anedya_client);
 static void _anedya_ext_mqtt_event_task(void *pvParameters);
-static void anedya_espi_mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data);
 static void _mqtt_message_parser(anedya_client_t *anedya_client, uart_event_t event);
+static anedya_err_t _anedya_ext_send_AT_command(char *cmd, unsigned int cmd_type, char *resp, char *expected_resp, size_t timeout);
 
 void _anedya_interface_sleep_ms(size_t ms)
 {
@@ -71,7 +70,7 @@ uint64_t _anedya_interface_get_time_ms()
 
 void _anedya_interface_std_out(const char *str)
 {
-    ESP_LOGI(TAG, "%s", str);
+    ESP_LOGI("ANEDYA", "%s", str);
 }
 
 static void _anedya_ext_mqtt_event_task(void *pvParameters)
@@ -82,8 +81,32 @@ static void _anedya_ext_mqtt_event_task(void *pvParameters)
     while (1)
     {
         xEventGroupWaitBits(MqttEvents, MQTT_EVENT_RECEIVE_DATA, pdFALSE, pdFALSE, portMAX_DELAY);
-        anedya_espi_mqtt_event_handler(anedya_client, NULL, mqtt_event.event_id, &mqtt_event);
         xEventGroupClearBits(MqttEvents, MQTT_EVENT_RECEIVE_DATA);
+
+        switch (mqtt_event.event_id)
+        {
+        case EXT_MQTT_EVENT_CONNECTED:
+            if (anedya_client->_anedya_on_connect_handler != NULL)
+            {
+                anedya_client->_anedya_on_connect_handler(anedya_client);
+            }
+            continue;
+        case EXT_MQTT_EVENT_DISCONNECTED:
+            if (anedya_client->_anedya_on_disconnect_handler != NULL)
+            {
+                anedya_client->_anedya_on_disconnect_handler(anedya_client);
+            }
+            continue;
+        case EXT_MQTT_EVENT_DATA:
+            if (anedya_client->_message_handler != NULL)
+            {
+                anedya_client->_message_handler(anedya_client, mqtt_event.topic, mqtt_event.topic_len, mqtt_event.data, mqtt_event.data_len);
+            }
+            continue;
+        default:
+            continue;
+        }
+
         vTaskDelay(1 / portTICK_PERIOD_MS);
     }
 }
@@ -102,7 +125,7 @@ static void _mqtt_message_parser(anedya_client_t *anedya_client, uart_event_t ev
             if (ret_code == 0)
             {
                 printf("MQTT CONNECTED!\n");
-                mqtt_event.event_id = MQTT_EVENT_CONNECTED;
+                mqtt_event.event_id = EXT_MQTT_EVENT_CONNECTED;
                 xEventGroupSetBits(MqttEvents, MQTT_EVENT_RECEIVE_DATA);
             }
             else
@@ -116,7 +139,7 @@ static void _mqtt_message_parser(anedya_client_t *anedya_client, uart_event_t ev
     if (stat_ptr != NULL)
     {
         ESP_LOGE(TAG, "Mqtt Disconnected!");
-        mqtt_event.event_id = MQTT_EVENT_DISCONNECTED;
+        mqtt_event.event_id = EXT_MQTT_EVENT_DISCONNECTED;
         xEventGroupSetBits(MqttEvents, MQTT_EVENT_RECEIVE_DATA);
     }
 
@@ -186,7 +209,7 @@ static void _mqtt_message_parser(anedya_client_t *anedya_client, uart_event_t ev
 
                 if (modem_response[modem_response_len - 1] == '}')
                 {
-                    mqtt_event.event_id = MQTT_EVENT_DATA;
+                    mqtt_event.event_id = EXT_MQTT_EVENT_DATA;
                     mqtt_event.data = (char *)modem_response;
                     mqtt_event.topic = (char *)response_topic;
                     mqtt_event.data_len = strlen((char *)modem_response);
@@ -218,7 +241,7 @@ static void _mqtt_message_parser(anedya_client_t *anedya_client, uart_event_t ev
 
                     if (modem_response[modem_response_len - 1] == '}')
                     {
-                        mqtt_event.event_id = MQTT_EVENT_DATA;
+                        mqtt_event.event_id = EXT_MQTT_EVENT_DATA;
                         mqtt_event.data = (char *)modem_response;
                         mqtt_event.topic = (char *)response_topic;
                         mqtt_event.data_len = strlen((char *)modem_response);
@@ -246,7 +269,7 @@ static void _mqtt_message_parser(anedya_client_t *anedya_client, uart_event_t ev
 
             if (modem_response[modem_response_len - 1] == '}')
             {
-                mqtt_event.event_id = MQTT_EVENT_DATA;
+                mqtt_event.event_id = EXT_MQTT_EVENT_DATA;
                 mqtt_event.data = (char *)modem_response;
                 mqtt_event.topic = (char *)response_topic;
                 mqtt_event.data_len = strlen((char *)modem_response);
@@ -269,7 +292,7 @@ static void _mqtt_message_parser(anedya_client_t *anedya_client, uart_event_t ev
 static void _uart_event_task(void *pvParameters)
 {
     anedya_client_t *anedya_client = (anedya_client_t *)pvParameters;
-    QueueHandle_t uart_queue = (QueueHandle_t)anedya_client->config->ext_config.queuehandle;
+    QueueHandle_t uart_queue = ((anedya_ext_config_t *)anedya_client->config->interface_config)->uart_queue_handle;
 
     uart_event_t event;
     size_t buffered_size;
@@ -277,7 +300,7 @@ static void _uart_event_task(void *pvParameters)
 
     for (;;)
     {
-        xEventGroupWaitBits(ModemEvents, MODEM_EVENT_OTA_NOT_PROGRESS, pdFALSE, pdFALSE, portMAX_DELAY);
+        xEventGroupWaitBits(ModemEvents, MODEM_EVENT_OTA_NOT_IN_PROGRESS, pdFALSE, pdFALSE, portMAX_DELAY);
 
         // Waiting for UART event
         if (xQueueReceive(uart_queue, (void *)&event, (TickType_t)portMAX_DELAY))
@@ -298,7 +321,7 @@ static void _uart_event_task(void *pvParameters)
                         response_topic[j] = 0;
                 }
                 // Remove unwanted characters
-                int len = uart_read_bytes(anedya_client->config->ext_config.uart_port_num, dtmp, event.size, pdMS_TO_TICKS(2000));
+                int len = uart_read_bytes(UART_PORT_NUMBER, dtmp, event.size, pdMS_TO_TICKS(2000));
                 if (len <= 0)
                     break;
                 int j = 0;
@@ -315,13 +338,13 @@ static void _uart_event_task(void *pvParameters)
 
             case UART_FIFO_OVF:
                 ESP_LOGI("UART EVENT HANDLER", "hw fifo overflow");
-                uart_flush_input(anedya_client->config->ext_config.uart_port_num);
+                uart_flush_input(UART_PORT_NUMBER);
                 xQueueReset(uart_queue);
                 break;
 
             case UART_BUFFER_FULL:
                 ESP_LOGI("UART EVENT HANDLER", "ring buffer full");
-                uart_flush_input(anedya_client->config->ext_config.uart_port_num);
+                uart_flush_input(UART_PORT_NUMBER);
                 xQueueReset(uart_queue);
                 break;
 
@@ -338,22 +361,22 @@ static void _uart_event_task(void *pvParameters)
                 break;
 
             case UART_PATTERN_DET:
-                uart_get_buffered_data_len(anedya_client->config->ext_config.uart_port_num, &buffered_size);
-                int pos = uart_pattern_pop_pos(anedya_client->config->ext_config.uart_port_num);
+                uart_get_buffered_data_len(UART_PORT_NUMBER, &buffered_size);
+                int pos = uart_pattern_pop_pos(UART_PORT_NUMBER);
                 ESP_LOGI("UART EVENT HANDLER", "[UART PATTERN DETECTED] pos: %d, buffered size: %d", pos, buffered_size);
                 if (pos == -1)
                 {
-                    uart_flush_input(anedya_client->config->ext_config.uart_port_num);
+                    uart_flush_input(UART_PORT_NUMBER);
                 }
                 else
                 {
-                    uart_read_bytes(anedya_client->config->ext_config.uart_port_num, dtmp, pos, 100 / portTICK_PERIOD_MS);
+                    uart_read_bytes(UART_PORT_NUMBER, dtmp, pos, 100 / portTICK_PERIOD_MS);
 
                     // Clear pat manually
                     for (int i = 0; i < (PATTERN_CHR_NUM + 1); ++i)
                         pat[i] = 0;
 
-                    uart_read_bytes(anedya_client->config->ext_config.uart_port_num, pat, PATTERN_CHR_NUM, 100 / portTICK_PERIOD_MS);
+                    uart_read_bytes(UART_PORT_NUMBER, pat, PATTERN_CHR_NUM, 100 / portTICK_PERIOD_MS);
 
                     ESP_LOGI("UART EVENT HANDLER", "read data: %s", dtmp);
                     ESP_LOGI("UART EVENT HANDLER", "read pat : %s", pat);
@@ -370,7 +393,7 @@ static void _uart_event_task(void *pvParameters)
     }
 }
 
-anedya_err_t _anedya_ext_send_AT_command(char *cmd, unsigned int cmd_type, char *resp, char *expected_resp, size_t timeout)
+static anedya_err_t _anedya_ext_send_AT_command(char *cmd, unsigned int cmd_type, char *resp, char *expected_resp, size_t timeout)
 {
     if (UART_PORT_NUMBER == -1)
     {
@@ -439,32 +462,35 @@ anedya_err_t _anedya_ext_send_AT_command(char *cmd, unsigned int cmd_type, char 
     return ANEDYA_OK;
 }
 
-anedya_err_t anedya_ext_uart_init(anedya_client_t *client)
+anedya_err_t _anedya_interface_init(anedya_client_t *client)
 {
-    UART_PORT_NUMBER = client->config->ext_config.uart_port_num;
-    if (client->config->ext_config.uart_port_num == -1)
+    anedya_ext_config_t *ext_config = (anedya_ext_config_t *)client->config->interface_config;
+    UART_PORT_NUMBER = ext_config->uart_port_num;
+
+    if (ext_config->uart_port_num == -1)
     {
         ESP_LOGE(TAG, "Invalid port number passed to uart init");
         return ANEDYA_EXT_ERR;
     }
-    if (client->config->ext_config.queuehandle == NULL)
-    {
-        ESP_LOGE(TAG, "Invalid queue handler passed to uart init");
-        return ANEDYA_EXT_ERR;
-    }
-    unsigned int UART_PORT_NUM = client->config->ext_config.uart_port_num;
     ModemEvents = xEventGroupCreate();
     MqttEvents = xEventGroupCreate();
     uart_port_mutex = xSemaphoreCreateMutex();
 
+    // Install UART driver, and get the queue.
+    uart_driver_install(ext_config->uart_port_num, ANEDYA_RX_BUFFER_SIZE, ANEDYA_TX_BUFFER_SIZE, 20, &ext_config->uart_queue_handle, 0);
+    uart_param_config(ext_config->uart_port_num, &ext_config->uart_config);
+
+    // Set UART pins (using UART0 default pins ie no changes.)
+    uart_set_pin(ext_config->uart_port_num, ext_config->tx_pin, ext_config->rx_pin, ext_config->rts_pin, ext_config->cts_pin); // Mcu RTS PIN, Mcu CTS PIN
+
     // Enable pattern detection
-    if (uart_enable_pattern_det_baud_intr(UART_PORT_NUM, '+', PATTERN_CHR_NUM, 9, 0, 0) != ESP_OK)
+    if (uart_enable_pattern_det_baud_intr(ext_config->uart_port_num, '+', PATTERN_CHR_NUM, 9, 0, 0) != ESP_OK)
     {
         ESP_LOGE(TAG, "Could not enable pattern detection");
         return ANEDYA_EXT_ERR;
     }
 
-    if (uart_pattern_queue_reset(UART_PORT_NUM, 20) != ESP_OK)
+    if (uart_pattern_queue_reset(ext_config->uart_port_num, 20) != ESP_OK)
     {
         ESP_LOGE(TAG, "Could not reset pattern queue");
         return ANEDYA_EXT_ERR;
@@ -477,7 +503,7 @@ anedya_err_t anedya_ext_uart_init(anedya_client_t *client)
         return ANEDYA_EXT_ERR;
     }
 
-    xEventGroupSetBits(ModemEvents, MODEM_EVENT_OTA_NOT_PROGRESS);
+    xEventGroupSetBits(ModemEvents, MODEM_EVENT_OTA_NOT_IN_PROGRESS);
     anedya_err_t err;
 
     err = _anedya_ext_send_AT_command("ATE0\r\n", MODEM_CMD_EX_ASAP, NULL, "OK", 2000); // disable echo
@@ -486,12 +512,59 @@ anedya_err_t anedya_ext_uart_init(anedya_client_t *client)
     {
         ESP_LOGE(TAG, "Failed to create MQTT Event task");
     }
+    err = _anedya_ext_send_AT_command("AT+QMTDISC=0\r\n", MODEM_CMD_EX_ASAP, NULL, NULL, 2000); // disconnect from MQTT broker
+    err = _anedya_ext_send_AT_command("AT\r\n", MODEM_RESP_WAIT, NULL, "OK", 2000);
+    if (err == ANEDYA_OK)
+    {
+        if (ext_config->apn_count > 0)
+        {
+            int check = 0;
+            while (1)
+            {
+                ESP_LOGI(TAG, "Checking Modem Internet Connectivity...");
+                int status = -1, rssi = 0, mode = -1;
+                err = anedya_ext_network_reg_status(client, &status, 2000);
+                err = anedya_ext_network_operator(client, &mode, 2000);
+                err = anedya_ext_signal_quality(client, &rssi, NULL, 2000);
+                ESP_LOGI(TAG, "Status: %d, Mode: %d, RSSI: %d\n", status, mode, rssi);
+                err = anedya_ext_net_check(client, "www.google.com", 30000);
+                if (err == ANEDYA_OK)
+                {
+                    ESP_LOGI(TAG, "Modem is connected to internet.");
+                    return ANEDYA_OK;
+                }
+                else
+                {
+                    ESP_LOGI(TAG, "Setting APN...");
+
+                    err = anedya_ext_deactivate_pdp_context(client, 1, 2000);
+                    anedya_ext_apn_config_t *apn_config = (anedya_ext_apn_config_t *)ext_config->apn_configs;
+                    for (int i = 0; i < ext_config->apn_count; i++)
+                    {
+                        if (apn_config[i].apn == NULL)
+                        {
+                            ESP_LOGI(TAG, "APN is NULL, plz check the config");
+                            return ANEDYA_EXT_ERR;
+                        }
+                        anedya_ext_set_apn(client, apn_config[i].cid, apn_config[i].ip_ver, apn_config[i].apn, apn_config[i].username, apn_config[i].password);
+                        vTaskDelay(50 / portTICK_PERIOD_MS);
+                    }
+                    err = anedya_ext_set_fun_mode(client, 0, NULL, 2000);
+                    err = anedya_ext_set_fun_mode(client, 1, NULL, 10000);
+                }
+                check++;
+                if (check > 4)
+                    return ANEDYA_EXT_ERR;
+                vTaskDelay(10000 / portTICK_PERIOD_MS);
+            }
+        }
+    }
     return err;
 }
 
 anedya_err_t anedya_ext_restore_settings_to_factory_defaults(anedya_client_t *client, int timeout)
 {
-    if (client->config->ext_config.uart_port_num == -1)
+    if (UART_PORT_NUMBER == -1)
     {
         ESP_LOGE(TAG, "Invalid port number");
         return ANEDYA_EXT_ERR;
@@ -512,9 +585,9 @@ anedya_err_t anedya_ext_restore_settings_to_factory_defaults(anedya_client_t *cl
     xSemaphoreGive(uart_port_mutex);
     return err;
 }
-anedya_err_t anedya_ext_set_fun_mode(anedya_client_t *client, int fun, int rst, bool wait_for_rdy, int timeout)
+anedya_err_t anedya_ext_set_fun_mode(anedya_client_t *client, int fun, int rst, int timeout)
 {
-    if (client->config->ext_config.uart_port_num == -1)
+    if (UART_PORT_NUMBER == -1)
     {
         ESP_LOGE(TAG, "Invalid port number");
         return ANEDYA_EXT_ERR;
@@ -532,18 +605,19 @@ anedya_err_t anedya_ext_set_fun_mode(anedya_client_t *client, int fun, int rst, 
 #ifdef ANEDYA_ENABLE_DYNAMIC_ALLOCATION
 // TODO: Implement dynamic allocation
 #endif
-    if (fun != NULL && rst != NULL)
+    if (fun >= 0 && rst >= 0)
     {
         sprintf(AT_cmd, "AT+CFUN=%d,%d\r\n", fun, rst);
     }
-    else if (rst == NULL)
+    else if (rst < 0)
     {
         sprintf(AT_cmd, "AT+CFUN=%d\r\n", fun);
     }
     anedya_err_t err = ANEDYA_EXT_ERR;
-    if (wait_for_rdy)
+    if (rst == 1)
     {
         err = _anedya_ext_send_AT_command(AT_cmd, MODEM_RESP_WAIT, NULL, "RDY", timeout);
+        _anedya_ext_send_AT_command("ATE0\r\n", MODEM_CMD_EX_ASAP, NULL, NULL, 2000);
     }
     else
     {
@@ -555,7 +629,7 @@ anedya_err_t anedya_ext_set_fun_mode(anedya_client_t *client, int fun, int rst, 
 
 anedya_err_t anedya_ext_connectivity_check(anedya_client_t *client, int timeout)
 {
-    if (client->config->ext_config.uart_port_num == -1)
+    if (UART_PORT_NUMBER == -1)
     {
         ESP_LOGE(TAG, "Invalid port number");
         return ANEDYA_EXT_ERR;
@@ -568,7 +642,7 @@ anedya_err_t anedya_ext_connectivity_check(anedya_client_t *client, int timeout)
 
 anedya_err_t anedya_ext_network_reg_status(anedya_client_t *client, int *stat, int timeout)
 {
-    if (client->config->ext_config.uart_port_num == -1)
+    if (UART_PORT_NUMBER == -1)
     {
         ESP_LOGE(TAG, "Invalid port number");
         return ANEDYA_EXT_ERR;
@@ -588,7 +662,6 @@ anedya_err_t anedya_ext_network_reg_status(anedya_client_t *client, int *stat, i
 
     xSemaphoreTake(uart_port_mutex, (timeout + 5000) / portTICK_PERIOD_MS);
     anedya_err_t err = ANEDYA_EXT_ERR;
-    err = _anedya_ext_send_AT_command("ATE0\r\n", MODEM_CMD_EX_ASAP, NULL, "OK", 2000); // disable echo
     err = _anedya_ext_send_AT_command("AT+CEREG?\r\n", MODEM_RESP_WAIT, s_response, "+CEREG:", timeout);
     xSemaphoreGive(uart_port_mutex);
 
@@ -602,7 +675,7 @@ anedya_err_t anedya_ext_network_reg_status(anedya_client_t *client, int *stat, i
 }
 anedya_err_t anedya_ext_network_operator(anedya_client_t *client, int *mode, int timeout)
 {
-    if (client->config->ext_config.uart_port_num == -1)
+    if (UART_PORT_NUMBER == -1)
     {
         ESP_LOGE(TAG, "Invalid port number");
         return ANEDYA_EXT_ERR;
@@ -622,7 +695,6 @@ anedya_err_t anedya_ext_network_operator(anedya_client_t *client, int *mode, int
 
     xSemaphoreTake(uart_port_mutex, (timeout + 5000) / portTICK_PERIOD_MS);
     anedya_err_t err = ANEDYA_EXT_ERR;
-    err = _anedya_ext_send_AT_command("ATE0\r\n", MODEM_CMD_EX_ASAP, NULL, "OK", 2000); // disable echo
     err = _anedya_ext_send_AT_command("AT+COPS?\r\n", MODEM_RESP_WAIT, s_response, "+COPS:", timeout);
     xSemaphoreGive(uart_port_mutex);
 
@@ -636,7 +708,7 @@ anedya_err_t anedya_ext_network_operator(anedya_client_t *client, int *mode, int
 }
 anedya_err_t anedya_ext_signal_quality(anedya_client_t *client, int *rssi, int *ber, int timeout)
 {
-    if (client->config->ext_config.uart_port_num == -1)
+    if (UART_PORT_NUMBER == -1)
     {
         ESP_LOGE(TAG, "Invalid port number");
         return ANEDYA_EXT_ERR;
@@ -656,7 +728,6 @@ anedya_err_t anedya_ext_signal_quality(anedya_client_t *client, int *rssi, int *
     }
     xSemaphoreTake(uart_port_mutex, (timeout + 5000) / portTICK_PERIOD_MS);
     anedya_err_t err = ANEDYA_EXT_ERR;
-    err = _anedya_ext_send_AT_command("ATE0\r\n", MODEM_CMD_EX_ASAP, NULL, "OK", 2000); // disable echo
     err = _anedya_ext_send_AT_command("AT+CSQ\r\n", MODEM_RESP_WAIT, s_response, "+CSQ:", timeout);
     xSemaphoreGive(uart_port_mutex);
     if (ber != NULL)
@@ -680,33 +751,31 @@ anedya_err_t anedya_ext_signal_quality(anedya_client_t *client, int *rssi, int *
 
 anedya_err_t anedya_ext_pdp_context_status(anedya_client_t *client, char *pdp_context_out, int timeout)
 {
-    if (client->config->ext_config.uart_port_num == -1)
+    if (UART_PORT_NUMBER == -1)
     {
         ESP_LOGE(TAG, "Invalid port number");
         return ANEDYA_EXT_ERR;
     }
     xSemaphoreTake(uart_port_mutex, (timeout + 5000) / portTICK_PERIOD_MS);
     anedya_err_t err = ANEDYA_EXT_ERR;
-    err = _anedya_ext_send_AT_command("ATE0\r\n", MODEM_CMD_EX_ASAP, NULL, "OK", 2000); // disable echo
     err = _anedya_ext_send_AT_command("AT+CGDCONT?\r\n", MODEM_RESP_WAIT, pdp_context_out, "+CGDCONT:", timeout);
     xSemaphoreGive(uart_port_mutex);
     return err;
 }
 anedya_err_t anedya_ext_activate_pdp_context(anedya_client_t *client, int cid, int timeout)
 {
-    if (client->config->ext_config.uart_port_num == -1)
+    if (UART_PORT_NUMBER == -1)
     {
         ESP_LOGE(TAG, "Invalid port number");
         return ANEDYA_EXT_ERR;
     }
-    if (cid == NULL || cid < 0)
+    if (cid < 0)
     {
         ESP_LOGE(TAG, "cid is invalid!");
         return ANEDYA_EXT_ERR;
     }
     xSemaphoreTake(uart_port_mutex, (timeout + 5000) / portTICK_PERIOD_MS);
     anedya_err_t err = ANEDYA_EXT_ERR;
-    err = _anedya_ext_send_AT_command("ATE0\r\n", MODEM_CMD_EX_ASAP, NULL, NULL, timeout); // disable echo
 #ifdef ANEDYA_ENABLE_STATIC_ALLOCATION
     char AT_cmd[30] = {0};
 
@@ -722,7 +791,7 @@ anedya_err_t anedya_ext_activate_pdp_context(anedya_client_t *client, int cid, i
 }
 anedya_err_t anedya_ext_deactivate_pdp_context(anedya_client_t *client, int cid, int timeout)
 {
-    if (client->config->ext_config.uart_port_num == -1)
+    if (UART_PORT_NUMBER == -1)
     {
         ESP_LOGE(TAG, "Invalid port number");
         return ANEDYA_EXT_ERR;
@@ -734,7 +803,6 @@ anedya_err_t anedya_ext_deactivate_pdp_context(anedya_client_t *client, int cid,
     }
     xSemaphoreTake(uart_port_mutex, (timeout + 5000) / portTICK_PERIOD_MS);
     anedya_err_t err = ANEDYA_EXT_ERR;
-    err = _anedya_ext_send_AT_command("ATE0\r\n", MODEM_CMD_EX_ASAP, NULL, NULL, timeout); // disable echo
 #ifdef ANEDYA_ENABLE_STATIC_ALLOCATION
     char AT_cmd[30] = {0};
 
@@ -751,14 +819,13 @@ anedya_err_t anedya_ext_deactivate_pdp_context(anedya_client_t *client, int cid,
 
 anedya_err_t anedya_ext_read_pdp_context(anedya_client_t *client, char *pdp_context_out, int timeout)
 {
-    if (client->config->ext_config.uart_port_num == -1)
+    if (UART_PORT_NUMBER == -1)
     {
         ESP_LOGE(TAG, "Invalid port number");
         return ANEDYA_EXT_ERR;
     }
     xSemaphoreTake(uart_port_mutex, (timeout + 5000) / portTICK_PERIOD_MS);
     anedya_err_t err = ANEDYA_EXT_ERR;
-    err = _anedya_ext_send_AT_command("ATE0\r\n", MODEM_CMD_EX_ASAP, NULL, "OK", 2000); // disable echo
     err = _anedya_ext_send_AT_command("AT+QIACT?\r\n", MODEM_RESP_WAIT, pdp_context_out, "+QIACT:", timeout);
     xSemaphoreGive(uart_port_mutex);
     return err;
@@ -805,18 +872,18 @@ anedya_err_t anedya_ext_set_apn(anedya_client_t *client, int cid, char *ip_ver, 
 
 static anedya_err_t _anedya_ext_clear_uart_buffer(anedya_client_t *anedya_client)
 {
-    if (anedya_client->config->ext_config.uart_port_num == -1)
+    if (UART_PORT_NUMBER == -1)
     {
         ESP_LOGE(TAG, "Invalid port number");
         return ANEDYA_EXT_ERR;
     }
     size_t buffered_len = 0;
-    QueueHandle_t uart_queue = (QueueHandle_t)anedya_client->config->ext_config.queuehandle;
-    ESP_ERROR_CHECK(uart_get_buffered_data_len(anedya_client->config->ext_config.uart_port_num, &buffered_len));
+    QueueHandle_t uart_queue = ((anedya_ext_config_t *)anedya_client->config->interface_config)->uart_queue_handle;
+    ESP_ERROR_CHECK(uart_get_buffered_data_len(UART_PORT_NUMBER, &buffered_len));
     for (int i = 0; i < buffered_len; i++)
     {
         uint8_t data;
-        uart_read_bytes(anedya_client->config->ext_config.uart_port_num, &data, 1, pdMS_TO_TICKS(500));
+        uart_read_bytes(UART_PORT_NUMBER, &data, 1, pdMS_TO_TICKS(500));
     }
     xQueueReset(uart_queue);
     return ANEDYA_OK;
@@ -824,7 +891,7 @@ static anedya_err_t _anedya_ext_clear_uart_buffer(anedya_client_t *anedya_client
 
 anedya_err_t anedya_ext_get_modem_time(anedya_client_t *client, int mode, char *output_dateTime)
 {
-    if (client->config->ext_config.uart_port_num == -1)
+    if (UART_PORT_NUMBER == -1)
     {
         ESP_LOGE(TAG, "Invalid port number");
         return ANEDYA_EXT_ERR;
@@ -852,71 +919,6 @@ anedya_err_t anedya_ext_get_modem_time(anedya_client_t *client, int mode, char *
 
 #ifdef ANEDYA_CONNECTION_METHOD_MQTT
 
-static void anedya_espi_mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data)
-{
-    // ESP_LOGD(TAG, "Event dispatched from event loop base=%s, event_id=%" PRIi32, base, event_id);
-    esp_mqtt_event_handle_t event = event_data;
-    // esp_mqtt_client_handle_t client = event->client;
-    anedya_client_t *cl = (anedya_client_t *)handler_args;
-    // int msg_id;
-
-    switch ((esp_mqtt_event_id_t)event_id)
-    {
-    case MQTT_EVENT_CONNECTED:
-        //  Issue callback
-        if (cl->_anedya_on_connect_handler != NULL)
-        {
-            cl->_anedya_on_connect_handler(cl);
-        }
-        break;
-    case MQTT_EVENT_DISCONNECTED:
-        if (cl->_anedya_on_disconnect_handler != NULL)
-        {
-            cl->_anedya_on_disconnect_handler(cl);
-        }
-        break;
-
-    case MQTT_EVENT_SUBSCRIBED:
-        // ESP_LOGI(TAG, "MQTT_EVENT_SUBSCRIBED, msg_id=%d", event->msg_id);
-        break;
-    case MQTT_EVENT_UNSUBSCRIBED:
-        // ESP_LOGI(TAG, "MQTT_EVENT_UNSUBSCRIBED, msg_id=%d", event->msg_id);
-        break;
-    case MQTT_EVENT_PUBLISHED:
-        // ESP_LOGI(TAG, "MQTT_EVENT_PUBLISHED, msg_id=%d", event->msg_id);
-        break;
-    case MQTT_EVENT_DATA:
-        // ESP_LOGI(TAG, "MQTT_EVENT_DATA");
-        // printf("TOPIC=%.*s\r\n", event->topic_len, event->topic);
-        // printf("DATA=%.*s\r\n", event->data_len, event->data);
-
-        cl->_message_handler(cl, event->topic, event->topic_len, event->data, event->data_len);
-
-        break;
-    case MQTT_EVENT_ERROR:
-        ESP_LOGI(TAG, "MQTT_EVENT_ERROR");
-        if (event->error_handle->error_type == MQTT_ERROR_TYPE_TCP_TRANSPORT)
-        {
-            ESP_LOGI(TAG, "Last error code reported from esp-tls: 0x%x", event->error_handle->esp_tls_last_esp_err);
-            ESP_LOGI(TAG, "Last tls stack error number: 0x%x", event->error_handle->esp_tls_stack_err);
-            ESP_LOGI(TAG, "Last captured errno : %d (%s)", event->error_handle->esp_transport_sock_errno,
-                     strerror(event->error_handle->esp_transport_sock_errno));
-        }
-        else if (event->error_handle->error_type == MQTT_ERROR_TYPE_CONNECTION_REFUSED)
-        {
-            ESP_LOGI(TAG, "Connection refused error: 0x%x", event->error_handle->connect_return_code);
-        }
-        else
-        {
-            ESP_LOGW(TAG, "Unknown error type: 0x%x", event->error_handle->error_type);
-        }
-        break;
-    default:
-        ESP_LOGI(TAG, "Other event id:%d", event->event_id);
-        break;
-    }
-}
-
 anedya_mqtt_client_handle_t _anedya_interface_mqtt_init(anedya_client_t *parent, char *broker, const char *devid, const char *secret)
 {
     mqtt_cfg = (esp_mqtt_client_config_t){
@@ -938,7 +940,6 @@ anedya_mqtt_client_handle_t _anedya_interface_mqtt_init(anedya_client_t *parent,
 #ifdef ANEDYA_ENABLE_STATIC_ALLOCATION
     char AT_cmd[300];
     char response[20] = {0};
-
 #endif
 #ifdef ANEDYA_ENABLE_DYNAMIC_ALLOCATION
 // TODO: Implement dynamic allocation
@@ -946,7 +947,6 @@ anedya_mqtt_client_handle_t _anedya_interface_mqtt_init(anedya_client_t *parent,
 
     anedya_err_t err = ANEDYA_EXT_ERR;
     xSemaphoreTake(uart_port_mutex, portMAX_DELAY);
-    err = _anedya_ext_send_AT_command("ATE0\r\n", MODEM_RESP_WAIT, NULL, "OK", 2000);
     err = _anedya_ext_send_AT_command("AT+IFC=2,2\r\n", MODEM_RESP_WAIT, NULL, "OK", 2000); // Enable RTS/CTS flow control
     err = _anedya_ext_send_AT_command("AT+IFC?\r\n", MODEM_RESP_WAIT, NULL, "OK", 2000);
 
@@ -982,7 +982,7 @@ anedya_mqtt_client_handle_t _anedya_interface_mqtt_init(anedya_client_t *parent,
         char data[2];
         data[0] = anedya_tls_root_ca[i];
         data[1] = '\0';
-        int bytes_written = uart_write_bytes(parent->config->ext_config.uart_port_num, data, strlen(data));
+        int bytes_written = uart_write_bytes(UART_PORT_NUMBER, data, strlen(data));
         if (bytes_written != strlen(data))
         {
             ESP_LOGE(TAG, "Failed to write %d bytes to UART. Only %d bytes were written.", strlen(data), bytes_written);
@@ -1248,7 +1248,7 @@ anedya_err_t anedya_set_message_callback(anedya_mqtt_client_handle_t anclient, a
 
 anedya_err_t anedya_ext_http_get_range_request(anedya_client_t *client, anedya_ext_net_reader_t *reader, char *url, int url_len, int starting_position, int readlen, int timeout)
 {
-    if (client->config->ext_config.uart_port_num == -1)
+    if (UART_PORT_NUMBER == -1)
     {
         ESP_LOGE(TAG, "Invalid port number");
         return ANEDYA_EXT_ERR;
@@ -1277,18 +1277,18 @@ anedya_err_t anedya_ext_http_get_range_request(anedya_client_t *client, anedya_e
     if (_anedya_ext_send_AT_command(AT_cmd, MODEM_RESP_WAIT, NULL, "CONNECT", 80000) != ANEDYA_OK)
         return ANEDYA_EXT_ERR;
 
-    uart_write_bytes(client->config->ext_config.uart_port_num, (const char *)url, url_len);
+    uart_write_bytes(UART_PORT_NUMBER, (const char *)url, url_len);
     vTaskDelay(pdMS_TO_TICKS(1000));
 
     snprintf(AT_cmd, sizeof(AT_cmd), "AT+QHTTPGETEX=80,%d,%d\r\n", starting_position, readlen);
     if (_anedya_ext_send_AT_command(AT_cmd, MODEM_RESP_WAIT, NULL, "+QHTTPGET:", 80000) != ANEDYA_OK)
         return ANEDYA_EXT_ERR;
 
-    xEventGroupClearBits(ModemEvents, MODEM_EVENT_OTA_NOT_PROGRESS);
+    xEventGroupClearBits(ModemEvents, MODEM_EVENT_OTA_NOT_IN_PROGRESS);
     _anedya_ext_clear_uart_buffer(client); // Clear the UART buffer
 
     ESP_LOGI("TX Command", "AT+QHTTPREAD=300\r\n");
-    uart_write_bytes(client->config->ext_config.uart_port_num, "AT+QHTTPREAD=300\r\n", strlen("AT+QHTTPREAD=300\r\n"));
+    uart_write_bytes(UART_PORT_NUMBER, "AT+QHTTPREAD=300\r\n", strlen("AT+QHTTPREAD=300\r\n"));
 
 // --- Header Parsing Section ---
 #ifdef ANEDYA_ENABLE_STATIC_ALLOCATION
@@ -1308,7 +1308,7 @@ anedya_err_t anedya_ext_http_get_range_request(anedya_client_t *client, anedya_e
     TickType_t start = xTaskGetTickCount();
     while (!headers_done && (xTaskGetTickCount() - start < pdMS_TO_TICKS(timeout)))
     {
-        int read = uart_read_bytes(client->config->ext_config.uart_port_num, &byte, 1, pdMS_TO_TICKS(500));
+        int read = uart_read_bytes(UART_PORT_NUMBER, &byte, 1, pdMS_TO_TICKS(500));
         if (read == 1)
         {
             if (header_pos < sizeof(header_buf) - 1)
@@ -1360,9 +1360,6 @@ anedya_err_t anedya_ext_http_get_range_request(anedya_client_t *client, anedya_e
         return ANEDYA_EXT_ERR;
     }
 
-    // Lock UART for binary data handling after headers
-    reader->_lock_uart_event_handler = true;
-
     // You can now read binary asset content from UART here if needed
 
     return ANEDYA_OK;
@@ -1370,18 +1367,13 @@ anedya_err_t anedya_ext_http_get_range_request(anedya_client_t *client, anedya_e
 
 size_t anedya_ext_ota_read_next(anedya_client_t *client, anedya_ext_net_reader_t *reader, int read_len, char *output, int timeout)
 {
-    if (client->config->ext_config.uart_port_num == -1)
+    if (UART_PORT_NUMBER == -1)
     {
         ESP_LOGE(TAG, "Invalid port number");
         return 0;
     }
-    if (!reader->_lock_uart_event_handler)
-    {
-        ESP_LOGE(TAG, "Uart event handler is not locked");
-        return 0;
-    }
 
-    size_t read = uart_read_bytes(client->config->ext_config.uart_port_num, output, read_len, pdMS_TO_TICKS(timeout));
+    size_t read = uart_read_bytes(UART_PORT_NUMBER, output, read_len, pdMS_TO_TICKS(timeout));
     if (read == 0)
     {
         ESP_LOGI(TAG, "Read error %d", read);
@@ -1394,19 +1386,13 @@ size_t anedya_ext_ota_read_next(anedya_client_t *client, anedya_ext_net_reader_t
 
 anedya_err_t anedya_ext_ota_reader_close(anedya_client_t *client, anedya_ext_net_reader_t *reader)
 {
-    if (client->config->ext_config.uart_port_num == -1)
+    if (UART_PORT_NUMBER == -1)
     {
         ESP_LOGE(TAG, "Invalid port number");
         return ANEDYA_EXT_ERR;
     }
-    if (!reader->_lock_uart_event_handler)
-    {
-        ESP_LOGE(TAG, "Reader is already closed");
-        return ANEDYA_EXT_ERR;
-    }
     _anedya_ext_clear_uart_buffer(client); // Clear the UART buffer
-    xEventGroupSetBits(ModemEvents, MODEM_EVENT_OTA_NOT_PROGRESS);
-    reader->_lock_uart_event_handler = 0;
+    xEventGroupSetBits(ModemEvents, MODEM_EVENT_OTA_NOT_IN_PROGRESS);
     xSemaphoreGive(uart_port_mutex);
     // ESP_LOGI(TAG, "Reset the queue");
     return ANEDYA_OK;

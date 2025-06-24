@@ -19,35 +19,46 @@ extern "C"
 
   typedef struct
   {
-    int status_code;
+    int cid;
+    const char *ip_ver;
+    const char *apn;
+    const char *username;
+    const char *password;
+  } anedya_ext_apn_config_t;
+
+  typedef struct
+  {
+    unsigned int uart_port_num;
+    unsigned int tx_pin;
+    unsigned int rx_pin;
+    unsigned int rts_pin;
+    unsigned int cts_pin;
+    uart_config_t uart_config;
+    QueueHandle_t uart_queue_handle;
+    anedya_ext_apn_config_t *apn_configs;
+    int apn_count;
+  } anedya_ext_config_t;
+
+  #define EXT_MQTT_EVENT_CONNECTED 1
+  #define EXT_MQTT_EVENT_DISCONNECTED 2
+#define EXT_MQTT_EVENT_DATA 3
+
+  typedef struct
+  {
+    int event_id;
+    char *data;
+    int data_len;
+    char *topic;
+    int topic_len;
+  } anedya_ext_mqtt_event_t;
+
+  typedef struct
+  {
     int content_length;
     int bytes_read;
-    int _lock_uart_event_handler;
   } anedya_ext_net_reader_t;
 
-  // Internal Functions
-  anedya_err_t _anedya_ext_send_AT_command(char *cmd, unsigned int cmd_type, char *resp, char *expected_resp, size_t timeout);
-
-  /**
-   * @brief Initializes external UART communication for the Anedya client
-   *
-   * @param client Pointer to the Anedya client structure containing configuration
-   *
-   * @return anedya_err_t
-   * @retval - `ANEDYA_EXT_ERR` if any initialization step fails
-   * @retval - `ANEDYA_OK` if initialization is successful
-   *
-   * @warning The following fields **must be correctly set** before calling this function:
-   *
-   *   1. `client->config->ext_config.uart_port_num`
-   *      - Must be a greater than 0
-   *
-   *   2. `client->config->ext_config.queuehandle`
-   *      - Must be a valid (non-NULL) queue handle
-   *
-   */
-  anedya_err_t anedya_ext_uart_init(anedya_client_t *client);
-
+  
   /**
    * @brief Checks if the modem is connected via UART
    *
@@ -93,7 +104,7 @@ extern "C"
    *
    * @warning Must uart initialized before calling this function.
    */
-  anedya_err_t anedya_ext_set_fun_mode(anedya_client_t *client, int fun, int rst, bool wait_for_rdy, int timeout);
+  anedya_err_t anedya_ext_set_fun_mode(anedya_client_t *client, int fun, int rst, int timeout);
 
   /**
    * @brief Gets the current network registration status
@@ -128,7 +139,7 @@ extern "C"
    * @note Ensure that the `mode` pointer is not NULL.
    */
   anedya_err_t anedya_ext_network_operator(anedya_client_t *client, int *mode, int timeout);
-  
+
   /**
    * @brief Retrieves the current signal quality
    *
@@ -148,21 +159,21 @@ extern "C"
    */
   anedya_err_t anedya_ext_signal_quality(anedya_client_t *client, int *rssi, int *ber, int timeout);
 
-/**
- * @brief Retrieves the current PDP context status
- *
- * @param[in] client Pointer to the Anedya client structure containing configuration
- * @param[out] pdp_context_out Buffer to store the PDP context information
- * @param[in] timeout The maximum time to wait for the operation to complete
- *
- * @return anedya_err_t
- * @retval - `ANEDYA_OK` if the operation is successful
- * @retval - `ANEDYA_ERR_EXT_TIMEOUT` if the operation times out
- * @retval - `ANEDYA_EXT_ERR` if there is an error in communication or invalid parameters
- *
- * @warning The UART must be initialized before calling this function.
- * @note Ensure that the `pdp_context_out` buffer is adequately sized to hold the response.
- */
+  /**
+   * @brief Retrieves the current PDP context status
+   *
+   * @param[in] client Pointer to the Anedya client structure containing configuration
+   * @param[out] pdp_context_out Buffer to store the PDP context information
+   * @param[in] timeout The maximum time to wait for the operation to complete
+   *
+   * @return anedya_err_t
+   * @retval - `ANEDYA_OK` if the operation is successful
+   * @retval - `ANEDYA_ERR_EXT_TIMEOUT` if the operation times out
+   * @retval - `ANEDYA_EXT_ERR` if there is an error in communication or invalid parameters
+   *
+   * @warning The UART must be initialized before calling this function.
+   * @note Ensure that the `pdp_context_out` buffer is adequately sized to hold the response.
+   */
   anedya_err_t anedya_ext_pdp_context_status(anedya_client_t *client, char *pdp_context_out, int timeout);
 
   /**
@@ -199,23 +210,23 @@ extern "C"
    */
   anedya_err_t anedya_ext_deactivate_pdp_context(anedya_client_t *client, int cid, int timeout);
 
-/**
- * @brief Reads the PDP context from the modem
- *
- * This function retrieves the current PDP context from the modem and stores it in the provided buffer.
- *
- * @param[in] client Pointer to the Anedya client structure containing configuration
- * @param[out] pdp_context_out Buffer to store the PDP context response
- * @param[in] timeout The maximum time to wait for the operation to complete
- *
- * @return anedya_err_t
- * @retval - `ANEDYA_OK` if the operation is successful
- * @retval - `ANEDYA_ERR_EXT_TIMEOUT` if the operation times out
- * @retval - `ANEDYA_EXT_ERR` if there is an error in communication or invalid parameters
- *
- * @warning The UART must be initialized before calling this function.
- * @note Ensure that the `pdp_context_out` buffer is adequately sized to hold the response.
- */
+  /**
+   * @brief Reads the PDP context from the modem
+   *
+   * This function retrieves the current PDP context from the modem and stores it in the provided buffer.
+   *
+   * @param[in] client Pointer to the Anedya client structure containing configuration
+   * @param[out] pdp_context_out Buffer to store the PDP context response
+   * @param[in] timeout The maximum time to wait for the operation to complete
+   *
+   * @return anedya_err_t
+   * @retval - `ANEDYA_OK` if the operation is successful
+   * @retval - `ANEDYA_ERR_EXT_TIMEOUT` if the operation times out
+   * @retval - `ANEDYA_EXT_ERR` if there is an error in communication or invalid parameters
+   *
+   * @warning The UART must be initialized before calling this function.
+   * @note Ensure that the `pdp_context_out` buffer is adequately sized to hold the response.
+   */
   anedya_err_t anedya_ext_read_pdp_context(anedya_client_t *client, char *pdp_context_out, int timeout);
 
   /**
@@ -237,45 +248,45 @@ extern "C"
    */
   anedya_err_t anedya_ext_net_check(anedya_client_t *client, char *url, int timeout);
 
-/**
- * @brief Sets the Access Point Name (APN) for a specified PDP context
- *
- * This function configures the APN settings for a given PDP context using the provided parameters.
- *
- * @param[in] client Pointer to the Anedya client structure containing configuration
- * @param[in] cid The identifier of the PDP context to configure
- * @param[in] ip_ver The IP version to use (e.g., "IP", "IPV6", or "IPV4V6")
- * @param[in] apn The Access Point Name to set for the PDP context
- * @param[in] user Optional username for APN authentication (can be NULL if not required)
- * @param[in] pass Optional password for APN authentication (can be NULL if not required)
- *
- * @return anedya_err_t
- * @retval - `ANEDYA_OK` if the operation is successful
- * @retval - `ANEDYA_ERR_EXT_TIMEOUT` if the operation times out
- * @retval - `ANEDYA_EXT_ERR` if there is an error in communication or invalid parameters
- *
- * @warning The UART must be initialized before calling this function.
- * @note Ensure that the `apn` pointer is not NULL.
- */
+  /**
+   * @brief Sets the Access Point Name (APN) for a specified PDP context
+   *
+   * This function configures the APN settings for a given PDP context using the provided parameters.
+   *
+   * @param[in] client Pointer to the Anedya client structure containing configuration
+   * @param[in] cid The identifier of the PDP context to configure
+   * @param[in] ip_ver The IP version to use (e.g., "IP", "IPV6", or "IPV4V6")
+   * @param[in] apn The Access Point Name to set for the PDP context
+   * @param[in] user Optional username for APN authentication (can be NULL if not required)
+   * @param[in] pass Optional password for APN authentication (can be NULL if not required)
+   *
+   * @return anedya_err_t
+   * @retval - `ANEDYA_OK` if the operation is successful
+   * @retval - `ANEDYA_ERR_EXT_TIMEOUT` if the operation times out
+   * @retval - `ANEDYA_EXT_ERR` if there is an error in communication or invalid parameters
+   *
+   * @warning The UART must be initialized before calling this function.
+   * @note Ensure that the `apn` pointer is not NULL.
+   */
   anedya_err_t anedya_ext_set_apn(anedya_client_t *client, int cid, char *ip_ver, char *apn, char *user, char *pass);
 
-/**
- * @brief Gets the current date and time from the modem
- *
- * This function sends an AT command to the modem to retrieve the current date and time.
- *
- * @param[in] client Pointer to the Anedya client structure containing configuration
- * @param[in] mode The AT command mode to use (e.g., 0 for current time, 1 for local time)
- * @param[out] output_dateTime The retrieved date and time in the format "YYYY-MM-DD HH:MM:SS"
- *
- * @return anedya_err_t
- * @retval - `ANEDYA_OK` if the operation is successful
- * @retval - `ANEDYA_ERR_EXT_TIMEOUT` if the operation times out
- * @retval - `ANEDYA_EXT_ERR` if there is an error in communication or invalid parameters
- *
- * @warning The UART must be initialized before calling this function.
- * @note Ensure that the `output_dateTime` pointer is not NULL.
- */
+  /**
+   * @brief Gets the current date and time from the modem
+   *
+   * This function sends an AT command to the modem to retrieve the current date and time.
+   *
+   * @param[in] client Pointer to the Anedya client structure containing configuration
+   * @param[in] mode The AT command mode to use (e.g., 0 for current time, 1 for local time)
+   * @param[out] output_dateTime The retrieved date and time in the format "YYYY-MM-DD HH:MM:SS"
+   *
+   * @return anedya_err_t
+   * @retval - `ANEDYA_OK` if the operation is successful
+   * @retval - `ANEDYA_ERR_EXT_TIMEOUT` if the operation times out
+   * @retval - `ANEDYA_EXT_ERR` if there is an error in communication or invalid parameters
+   *
+   * @warning The UART must be initialized before calling this function.
+   * @note Ensure that the `output_dateTime` pointer is not NULL.
+   */
   anedya_err_t anedya_ext_get_modem_time(anedya_client_t *client, int mode, char *output_dateTime);
 
   // OTA related functions

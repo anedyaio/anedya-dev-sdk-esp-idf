@@ -1,5 +1,5 @@
 #include "anedya_interface.h"
-#include "ai_esp_interfaces/anedya_esp_interface.h"
+#include "anedya_esp_interface.h"
 
 #ifdef ASDK_NI_WIFI
 #include "anedya_certs.h"

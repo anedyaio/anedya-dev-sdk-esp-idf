@@ -12,7 +12,7 @@ anedya_err_t anedya_client_init(anedya_config_t *config, anedya_client_t *client
     client->config = config;
 
     // Initialize the interface
-    anedya_err_t err = _anedya_interface_init(config->interface_config);
+    anedya_err_t err = _anedya_interface_init(client);
     if (err != ANEDYA_OK)
     {
         return err;
@@ -49,7 +49,7 @@ anedya_err_t anedya_client_init(anedya_config_t *config, anedya_client_t *client
     client->_anedya_on_connect_handler = _anedya_on_connect_handler;
     client->_anedya_on_disconnect_handler = _anedya_on_disconnect_handler;
     // Initialize txn store
-    anedya_err_t err = _anedya_txn_store_init(&client->txn_store);
+     err = _anedya_txn_store_init(&client->txn_store);
     if (err != ANEDYA_OK)
     {
         return err;
