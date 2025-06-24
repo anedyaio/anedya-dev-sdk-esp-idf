@@ -10,6 +10,14 @@
 anedya_err_t anedya_client_init(anedya_config_t *config, anedya_client_t *client)
 {
     client->config = config;
+
+    // Initialize the interface
+    anedya_err_t err = _anedya_interface_init(config->interface_config);
+    if (err != ANEDYA_OK)
+    {
+        return err;
+    }
+
 #ifdef ANEDYA_ENABLE_DYNAMIC_ALLOCATION
     client->tx_buffer = anedya_interface_allocate_memory(config->tx_buffer_size);
     if (client->tx_buffer == NULL)

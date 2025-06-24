@@ -27,6 +27,9 @@ See config.h for tuning operations of this library.
 extern "C" {
 #endif
 
+/** @brief: Initialize any interface specific variables or objects. */
+anedya_err_t _anedya_interface_init(anedya_interface_config_t *config);
+
 #ifdef ANEDYA_ENABLE_DEBUG_OUTPUT
 /** @brief: Defines an interface for providing output to serial console or any other terminal on the hardware*/
 void _anedya_interface_std_out(const char* str);

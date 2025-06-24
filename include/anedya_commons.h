@@ -29,6 +29,7 @@ extern "C"
     typedef unsigned char anedya_bind_secret_t[32];
     typedef unsigned int anedya_client_descriptor_t;
     typedef void *anedya_context_t;
+    typedef void *anedya_interface_config_t
     typedef uint8_t anedya_event_t;
     typedef struct
     {
