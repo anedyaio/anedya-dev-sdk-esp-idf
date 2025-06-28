@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.0.14
+- Migrated to anedya-dev-core
+- Bugfixes and Performance improvements
+
+## 0.0.13
+- Bugfixes
+- OTA Functionality support improved
+- Valuestore Update notifications support added
+
+## 0.0.12
+- Introduced OTA Functionality
+
 ## 0.0.11
 
 - Added: ValueStore Set Operations
