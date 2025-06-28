@@ -4,7 +4,15 @@ menu "Anedya SDK Settings"
         default CONN_ANEDYA_MQTT
         config CONN_ANEDYA_MQTT
             bool "MQTTS"
-    endchoice  
+    endchoice
+    choice "Interface Selection"
+        prompt "Select interface for Anedya"
+        default AN_INTERFACE_ESP32_WIFI
+        config AN_INTERFACE_ESP32_WIFI
+            bool "ESP32 internal WiFi"
+        config AN_INTERFACE_ESP32_QUETEL
+            bool "ESP32 Quectel EC200U/G"
+    endchoice
     config AN_MAX_CONCURRENT_TXN
         int "Max concurrent transactions"
         default 10
