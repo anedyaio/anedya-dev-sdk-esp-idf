@@ -256,7 +256,7 @@ extern "C"
    * @warning The UART must be initialized before calling this function.
    * @note Ensure that the `url` is a valid URL.
    */
-  anedya_err_t anedya_ext_net_check(anedya_client_t *client, char *url, int timeout);
+  anedya_err_t anedya_ext_net_check(anedya_client_t *client, char *url, int url_len, int timeout);
 
   /**
    * @brief Sets the Access Point Name (APN) for a specified PDP context

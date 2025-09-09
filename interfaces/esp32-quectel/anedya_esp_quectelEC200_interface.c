@@ -13,8 +13,8 @@
 #include <sys/time.h>
 #include <math.h>
 
-static const char *TAG = "ANEDYA_QESPI";
-static short debug_level = 0;
+static const char *TAG = "Anedya";
+static short debug_level = 1;
 
 static esp_mqtt_client_config_t mqtt_cfg;
 
@@ -125,7 +125,6 @@ static void _mqtt_message_parser(anedya_client_t *anedya_client, uart_event_t ev
         {
             if (ret_code == 0)
             {
-                printf("MQTT CONNECTED!\n");
                 mqtt_event.event_id = EXT_MQTT_EVENT_CONNECTED;
                 xEventGroupSetBits(MqttEvents, MQTT_EVENT_RECEIVE_DATA);
             }
@@ -198,7 +197,7 @@ static void _mqtt_message_parser(anedya_client_t *anedya_client, uart_event_t ev
             }
             if (strlen((char *)modem_response) == modem_response_len)
             {
-                if (debug_level > 0)
+                if (debug_level > 1)
                     ESP_LOGW("Anedya Response", "%s", (char *)modem_response);
 
                 if (strlen((char *)response_topic) == 0)
@@ -230,7 +229,7 @@ static void _mqtt_message_parser(anedya_client_t *anedya_client, uart_event_t ev
                 strncat((char *)modem_response, (char *)dtmp + i, 1);
                 if (strlen((char *)modem_response) == modem_response_len)
                 {
-                    if (debug_level > 0)
+                    if (debug_level > 1)
                         ESP_LOGW("Anedya Response", "%s", (char *)modem_response);
 
                     if (strlen((char *)response_topic) == 0)
@@ -258,7 +257,7 @@ static void _mqtt_message_parser(anedya_client_t *anedya_client, uart_event_t ev
         }
         else
         {
-            if (debug_level > 0)
+            if (debug_level > 1)
                 ESP_LOGW("Anedya Response", "%s", (char *)modem_response);
 
             if (strlen((char *)response_topic) == 0)
@@ -284,7 +283,7 @@ static void _mqtt_message_parser(anedya_client_t *anedya_client, uart_event_t ev
     else
     {
         if (debug_level > 1)
-            ESP_LOGI("ModemResponse", "%s", (char *)dtmp);
+            ESP_LOGI(TAG, "Modem response: %s", (char *)dtmp);
         xEventGroupSetBits(ModemEvents, MODEM_EVENT_RECEIVE_DATA);
     }
     return;
@@ -403,7 +402,7 @@ static anedya_err_t _anedya_ext_send_AT_command(char *cmd, unsigned int cmd_type
     }
     CMD_TYPE = cmd_type;
     if (debug_level > 1)
-        ESP_LOGI("TX Commnad", "%s", cmd);
+        ESP_LOGI(TAG, "TX Commnad: %s", cmd);
     uart_write_bytes(UART_PORT_NUMBER, cmd, strlen(cmd));
 
     if (cmd_type == MODEM_RESP_WAIT)
@@ -473,6 +472,8 @@ anedya_err_t _anedya_interface_init(anedya_client_t *client)
         ESP_LOGE(TAG, "Invalid port number passed to uart init");
         return ANEDYA_EXT_ERR;
     }
+    if(debug_level > 0)
+    ESP_LOGI(TAG, "Initializing the Anedya Quectel EC200 interface");
     ModemEvents = xEventGroupCreate();
     MqttEvents = xEventGroupCreate();
     uart_port_mutex = xSemaphoreCreateMutex();
@@ -498,7 +499,7 @@ anedya_err_t _anedya_interface_init(anedya_client_t *client)
     }
 
     // Create the task
-    if (xTaskCreate(_uart_event_task, "uart_event_task", 8096, client, 1, NULL) != pdPASS)
+    if (xTaskCreate(_uart_event_task, "uart_event_task", 8192, client, 1, NULL) != pdPASS)
     {
         ESP_LOGE(TAG, "Could not create uart event task");
         return ANEDYA_EXT_ERR;
@@ -522,21 +523,29 @@ anedya_err_t _anedya_interface_init(anedya_client_t *client)
             int check = 0;
             while (1)
             {
-                ESP_LOGI(TAG, "Checking Modem Internet Connectivity...");
+                if (debug_level > 0)
+                    ESP_LOGI(TAG, "Checking Modem Internet Connectivity...");
                 int status = -1, rssi = 0, mode = -1;
                 err = anedya_ext_network_reg_status(client, &status, 2000);
                 err = anedya_ext_network_operator(client, &mode, 2000);
                 err = anedya_ext_signal_quality(client, &rssi, NULL, 2000);
-                ESP_LOGI(TAG, "Status: %d, Mode: %d, RSSI: %d\n", status, mode, rssi);
-                err = anedya_ext_net_check(client, "www.google.com", 30000);
+                if (debug_level > 0)
+                    ESP_LOGI(TAG, "Status: %d, Mode: %d, RSSI: %d", status, mode, rssi);
+                char ping_url[100] = {0};
+                snprintf(ping_url, 100, "https://device.%s.anedya.io/v1/check", client->config->region);
+                err = anedya_ext_net_check(client, ping_url, strlen(ping_url), 30000);
                 if (err == ANEDYA_OK)
                 {
-                    ESP_LOGI(TAG, "Modem is connected to internet.");
+                    if (debug_level > 0)
+                    {
+                        ESP_LOGI(TAG, "Modem is connected to internet.");
+                    }
                     return ANEDYA_OK;
                 }
                 else
                 {
-                    ESP_LOGI(TAG, "Setting APN...");
+                    if (debug_level > 0)
+                        ESP_LOGI(TAG, "Setting APN...");
 
                     err = anedya_ext_deactivate_pdp_context(client, 1, 2000);
                     anedya_ext_apn_config_t *apn_config = (anedya_ext_apn_config_t *)ext_config->apn_configs;
@@ -544,7 +553,7 @@ anedya_err_t _anedya_interface_init(anedya_client_t *client)
                     {
                         if (apn_config[i].apn == NULL)
                         {
-                            ESP_LOGI(TAG, "APN is NULL, plz check the config");
+                            ESP_LOGE(TAG, "APN is NULL, plz check the config");
                             return ANEDYA_EXT_ERR;
                         }
                         anedya_ext_set_apn(client, apn_config[i].cid, apn_config[i].ip_ver, apn_config[i].apn, apn_config[i].username, apn_config[i].password);
@@ -832,26 +841,87 @@ anedya_err_t anedya_ext_read_pdp_context(anedya_client_t *client, char *pdp_cont
     return err;
 }
 
-anedya_err_t anedya_ext_net_check(anedya_client_t *client, char *url, int timeout)
+anedya_err_t anedya_ext_net_check(anedya_client_t *client, char *url, int url_len, int timeout)
 {
-    if (strlen(url) > 100)
+    if (url_len > 100)
     {
         ESP_LOGE(TAG, "URL too long, exceeds 100 characters");
         return ANEDYA_EXT_ERR;
     }
+    if (UART_PORT_NUMBER == -1)
+    {
+        ESP_LOGE(TAG, "Invalid port number");
+        return ANEDYA_EXT_ERR;
+    }
+
+    xSemaphoreTake(uart_port_mutex, portMAX_DELAY);
+
+    // Configure HTTP and SSL
+    _anedya_ext_send_AT_command("AT+QHTTPCFG=\"contextid\",1\r\n", MODEM_RESP_WAIT, NULL, "OK", 5000);
+    _anedya_ext_send_AT_command("AT+QHTTPCFG=\"responseheader\",1\r\n", MODEM_RESP_WAIT, NULL, "OK", 5000);
+    _anedya_ext_send_AT_command("AT+QHTTPCFG=\"requestheader\",0\r\n", MODEM_RESP_WAIT, NULL, "OK", 5000);
+    _anedya_ext_send_AT_command("AT+QHTTPCFG=\"sslctxid\",3\r\n", MODEM_RESP_WAIT, NULL, "OK", 5000);
+    _anedya_ext_send_AT_command("AT+QSSLCFG=\"sslversion\",3,3\r\n", MODEM_RESP_WAIT, NULL, "OK", 5000);
+    _anedya_ext_send_AT_command("AT+QSSLCFG=\"seclevel\",3,0\r\n", MODEM_RESP_WAIT, NULL, "OK", 5000);
+    _anedya_ext_send_AT_command("AT+QSSLCFG=\"sni\",3,1\r\n", MODEM_RESP_WAIT, NULL, "OK", 5000);
+    _anedya_ext_send_AT_command("AT+QSSLCFG=\"cacert\",3,\"UFS:anedya_tls_root_ca.pem\"\r\n", MODEM_RESP_WAIT, NULL, "OK", 5000);
 #ifdef ANEDYA_ENABLE_STATIC_ALLOCATION
-    char AT_cmd[100];
+    char AT_cmd[100] = {0};
+    char cmd_response[20] = {0};
 
 #endif
 #ifdef ANEDYA_ENABLE_DYNAMIC_ALLOCATION
 // TODO: Implement dynamic allocation
 #endif
 
-    sprintf(AT_cmd, "AT+QPING=1,\"%s\",%d,1\r\n", url, timeout / 1000);
-    xSemaphoreTake(uart_port_mutex, (timeout + 5000) / portTICK_PERIOD_MS);
-    anedya_err_t err = _anedya_ext_send_AT_command(AT_cmd, MODEM_RESP_WAIT, NULL, "+QPING:", timeout);
+    snprintf(AT_cmd, sizeof(AT_cmd), "AT+QHTTPURL=%d,80\r\n", url_len);
+    if (_anedya_ext_send_AT_command(AT_cmd, MODEM_RESP_WAIT, NULL, "CONNECT", 80000) != ANEDYA_OK)
+    {
+        xSemaphoreGive(uart_port_mutex);
+        return ANEDYA_EXT_ERR;
+    }
+
+    uart_write_bytes(UART_PORT_NUMBER, (const char *)url, url_len);
+    vTaskDelay(pdMS_TO_TICKS(1000));
+
+    snprintf(AT_cmd, sizeof(AT_cmd), "AT+QHTTPGET=%d\r\n", timeout / 1000);
+    if (_anedya_ext_send_AT_command(AT_cmd, MODEM_RESP_WAIT, cmd_response, "+QHTTPGET:", timeout + 1000) != ANEDYA_OK)
+    {
+        xSemaphoreGive(uart_port_mutex);
+        return ANEDYA_EXT_ERR;
+    }
     xSemaphoreGive(uart_port_mutex);
-    return err;
+    if (strlen(cmd_response) > 0)
+    {
+        if (debug_level > 2)
+            ESP_LOGI(TAG, "Ping response: %s", cmd_response);
+        int err = 0;
+        short check = sscanf(cmd_response, "+QHTTPGET: %d", &err);
+        if (check == 1)
+        {
+            if (err == 0)
+            {
+                if (debug_level > 2)
+                    ESP_LOGI(TAG, "Ping success: %d", err);
+                return ANEDYA_OK;
+            }
+            else if (err == 702)
+            {
+                ESP_LOGI(TAG, "Ping failed: %d", err);
+                return ANEDYA_EXT_ERR;
+            }
+        }
+        else
+        {
+            ESP_LOGW(TAG, "Invalid Ping Response: %s", cmd_response);
+        }
+    }
+    else
+    {
+        ESP_LOGE(TAG, "Ping failed: %s", cmd_response);
+        return ANEDYA_EXT_ERR;
+    }
+    return ANEDYA_OK;
 }
 
 anedya_err_t anedya_ext_set_apn(anedya_client_t *client, int cid, char *ip_ver, char *apn, char *user, char *pass)
@@ -999,7 +1069,8 @@ anedya_mqtt_client_handle_t _anedya_interface_mqtt_init(anedya_client_t *parent,
     }
     if (strncmp((char *)dtmp, "+QFWRITE: 769,769", strlen("+QFWRITE: 769,769")) == 0)
     {
-        ESP_LOGI(TAG, "set anedya tls root ca success!");
+        if (debug_level > 2)
+            ESP_LOGI(TAG, "set anedya tls root ca success!");
     }
     else
     {
@@ -1053,14 +1124,16 @@ anedya_err_t anedya_interface_mqtt_connect(anedya_mqtt_client_handle_t anclient)
         xSemaphoreGive(uart_port_mutex);
         return ANEDYA_EXT_ERR;
     }
-    ESP_LOGI(TAG, "OPEN RESPONSE: %s", (char *)response);
+    if (debug_level > 3)
+        ESP_LOGI(TAG, "OPEN RESPONSE: %s", (char *)response);
     int result_code = -1;
     int matched = sscanf((char *)response, "+QMTOPEN: %*d,%d", &result_code);
     if (matched)
     {
         if (result_code == 0)
         {
-            ESP_LOGI(TAG, "MQTT connection opened!");
+            if (debug_level > 0)
+                ESP_LOGI(TAG, "MQTT connection opened!");
         }
         else
         {
@@ -1071,7 +1144,7 @@ anedya_err_t anedya_interface_mqtt_connect(anedya_mqtt_client_handle_t anclient)
     }
     else
     {
-        ESP_LOGI(TAG, "Failed to open MQTT connection, modem err");
+        ESP_LOGE(TAG, "Failed to open MQTT connection, modem err");
     }
 
     snprintf(AT_cmd, sizeof(AT_cmd), "AT+QMTCONN=0,\"%s\",\"%s\",\"%s\"\r\n", mqtt_cfg.credentials.client_id, mqtt_cfg.credentials.username, mqtt_cfg.credentials.authentication.password);
@@ -1084,7 +1157,8 @@ anedya_err_t anedya_interface_mqtt_connect(anedya_mqtt_client_handle_t anclient)
         {
             if (ret_code == 0)
             {
-                ESP_LOGI(TAG, "MQTT connected!");
+                if (debug_level > 0)
+                    ESP_LOGI(TAG, "MQTT connection established!");
                 xSemaphoreGive(uart_port_mutex);
                 return ANEDYA_OK;
             }
@@ -1158,14 +1232,15 @@ anedya_err_t anedya_interface_mqtt_subscribe(anedya_mqtt_client_handle_t anclien
 #ifdef ANEDYA_ENABLE_DYNAMIC_ALLOCATION
 // TODO: Implement dynamic allocation
 #endif
-
-    ESP_LOGI(TAG, "Subscribing to topic: %s", (char *)topic);
+    if (debug_level > 2)
+        ESP_LOGI(TAG, "Subscribing to topic: %s", (char *)topic);
     snprintf(AT_cmd, sizeof(AT_cmd), "AT+QMTSUB=0,1,\"%s\",%d\r\n", (char *)topic, qos);
     xSemaphoreTake(uart_port_mutex, portMAX_DELAY);
     anedya_err_t err = _anedya_ext_send_AT_command(AT_cmd, MODEM_RESP_WAIT, response, "+QMTSUB:", 5000);
     if (err == ANEDYA_OK)
     {
-        ESP_LOGI(TAG, "MQTT subscribed! %s", (char *)response);
+        if (debug_level > 3)
+            ESP_LOGI(TAG, "MQTT subscribed! %s", (char *)response);
         int result = 2;
         int matched = sscanf((char *)response, "+QMTSUB: %*d,%*d,%d", &result);
         if (matched)
@@ -1177,7 +1252,7 @@ anedya_err_t anedya_interface_mqtt_subscribe(anedya_mqtt_client_handle_t anclien
             }
             else
             {
-                ESP_LOGI(TAG, "MQTT subscribe failed!");
+                ESP_LOGE(TAG, "MQTT subscribe failed!");
                 switch (result)
                 {
                 case 1:
