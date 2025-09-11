@@ -1,0 +1,71 @@
+menu "Device and Anedya Configuration"
+
+    menu "Anedya Config"
+        config CONNECTION_KEY
+            string "CONNECTION KEY"
+            default ""
+            help
+                Connection key to connect to anedya.
+        config EN_PROVISIONING
+            bool "Enable Provisioning"
+            default false
+        config BINDING_KEY
+            depends on EN_PROVISIONING
+            string "BINDING SECRET"
+            default ""
+            help
+                Binding key to helps to bind the device.
+                depends on EN_PROVISIONING
+        config PHYSICAL_DEVICE_ID
+            string "PHYSICAL DEVICE ID"
+            default ""
+            help
+                Physical Device Id to connect to anedya.
+    endmenu
+
+    menu "Hardware Settings"
+        config MCU_RX_PIN
+            int "MCU RX PIN"
+            default 15 
+        config MCU_TX_PIN
+            int "MCU TX PIN"
+            default 16 
+        config MCU_CTS_PIN
+            int "MCU CTS PIN"
+            default 42 
+        config MCU_RTS_PIN
+            int "MCU RTS PIN"
+            default 45 
+        config MCU_QUECTEL_RST
+            int "MCU RST PIN"
+            default 6
+        config MCU_QUECTEL_PWR
+            int "MCU PWR PIN"
+            default 4 
+    endmenu
+
+    menu "Time Settings"
+
+        config SNTP_TIME_SERVER
+            string "SNTP server name"
+            default "time.anedya.io"
+            help
+                Hostname of the main SNTP server.
+    
+        choice SNTP_TIME_SYNC_METHOD
+            prompt "Time synchronization method"
+            default SNTP_TIME_SYNC_METHOD_SMOOTH
+            help
+                Time synchronization method.
+    
+            config SNTP_TIME_SYNC_METHOD_IMMED
+                bool "update time immediately when received"
+            config SNTP_TIME_SYNC_METHOD_SMOOTH
+                bool "update time with smooth method (adjtime)"
+            config SNTP_TIME_SYNC_METHOD_CUSTOM
+                bool "custom implementation"
+        endchoice
+    
+    endmenu
+
+endmenu
