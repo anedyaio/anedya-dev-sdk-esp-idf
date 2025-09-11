@@ -3,7 +3,7 @@
 # anedya-dev-esp-id-example
 
 
-Anedya-Dev-ESP-IDF examples for the Quectel EC20.
+Anedya-Dev-ESP-IDF examples for the Quectel EC200 U/G.
 
 --- 
 
