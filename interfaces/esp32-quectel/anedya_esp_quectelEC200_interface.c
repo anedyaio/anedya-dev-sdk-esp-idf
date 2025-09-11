@@ -472,8 +472,8 @@ anedya_err_t _anedya_interface_init(anedya_client_t *client)
         ESP_LOGE(TAG, "Invalid port number passed to uart init");
         return ANEDYA_EXT_ERR;
     }
-    if(debug_level > 0)
-    ESP_LOGI(TAG, "Initializing the Anedya Quectel EC200 interface");
+    if (debug_level > 0)
+        ESP_LOGI(TAG, "Initializing the Anedya Quectel EC200 interface");
     ModemEvents = xEventGroupCreate();
     MqttEvents = xEventGroupCreate();
     uart_port_mutex = xSemaphoreCreateMutex();
@@ -482,7 +482,7 @@ anedya_err_t _anedya_interface_init(anedya_client_t *client)
     uart_driver_install(ext_config->uart_port_num, ANEDYA_RX_BUFFER_SIZE, ANEDYA_TX_BUFFER_SIZE, 20, &ext_config->uart_queue_handle, 0);
     uart_param_config(ext_config->uart_port_num, &ext_config->uart_config);
 
-    // Set UART pins (using UART0 default pins ie no changes.)
+    // Set UART pins
     uart_set_pin(ext_config->uart_port_num, ext_config->tx_pin, ext_config->rx_pin, ext_config->rts_pin, ext_config->cts_pin); // Mcu RTS PIN, Mcu CTS PIN
 
     // Enable pattern detection
@@ -1331,6 +1331,8 @@ anedya_err_t anedya_ext_http_get_range_request(anedya_client_t *client, anedya_e
     }
 
     xSemaphoreTake(uart_port_mutex, portMAX_DELAY);
+    _anedya_ext_clear_uart_buffer(client); // Clear the UART buffer
+    
 
     // Configure HTTP and SSL
     _anedya_ext_send_AT_command("AT+QHTTPCFG=\"contextid\",1\r\n", MODEM_RESP_WAIT, NULL, "OK", 5000);
@@ -1351,15 +1353,22 @@ anedya_err_t anedya_ext_http_get_range_request(anedya_client_t *client, anedya_e
 
     snprintf(AT_cmd, sizeof(AT_cmd), "AT+QHTTPURL=%d,80\r\n", url_len);
     if (_anedya_ext_send_AT_command(AT_cmd, MODEM_RESP_WAIT, NULL, "CONNECT", 80000) != ANEDYA_OK)
+    {
+        xSemaphoreGive(uart_port_mutex);
+        xEventGroupSetBits(ModemEvents, MODEM_EVENT_OTA_NOT_IN_PROGRESS);
         return ANEDYA_EXT_ERR;
+    }
 
     uart_write_bytes(UART_PORT_NUMBER, (const char *)url, url_len);
     vTaskDelay(pdMS_TO_TICKS(1000));
 
     snprintf(AT_cmd, sizeof(AT_cmd), "AT+QHTTPGETEX=80,%d,%d\r\n", starting_position, readlen);
     if (_anedya_ext_send_AT_command(AT_cmd, MODEM_RESP_WAIT, NULL, "+QHTTPGET:", 80000) != ANEDYA_OK)
+    {
+        xSemaphoreGive(uart_port_mutex);
+        xEventGroupSetBits(ModemEvents, MODEM_EVENT_OTA_NOT_IN_PROGRESS);
         return ANEDYA_EXT_ERR;
-
+    }
     xEventGroupClearBits(ModemEvents, MODEM_EVENT_OTA_NOT_IN_PROGRESS);
     _anedya_ext_clear_uart_buffer(client); // Clear the UART buffer
 
@@ -1409,6 +1418,9 @@ anedya_err_t anedya_ext_http_get_range_request(anedya_client_t *client, anedya_e
     if (!headers_done)
     {
         ESP_LOGE(TAG, "Failed to read HTTP headers");
+        _anedya_ext_clear_uart_buffer(client); // Clear the UART buffer
+        xSemaphoreGive(uart_port_mutex);
+        xEventGroupSetBits(ModemEvents, MODEM_EVENT_OTA_NOT_IN_PROGRESS);
         return ANEDYA_EXT_ERR;
     }
 
@@ -1426,6 +1438,10 @@ anedya_err_t anedya_ext_http_get_range_request(anedya_client_t *client, anedya_e
                 reader->content_length = content_length;
                 ESP_LOGI(TAG, "Parsed Content-Length: %d", content_length);
             }
+            else
+            {
+                ESP_LOGE(TAG, "Failed to parse Content-Length");
+            }
         }
         line = strtok(NULL, "\r\n");
     }
@@ -1433,6 +1449,9 @@ anedya_err_t anedya_ext_http_get_range_request(anedya_client_t *client, anedya_e
     if (!content_length_found)
     {
         ESP_LOGE(TAG, "Content-Length header not found");
+        _anedya_ext_clear_uart_buffer(client); // Clear the UART buffer
+        xSemaphoreGive(uart_port_mutex);
+        xEventGroupSetBits(ModemEvents, MODEM_EVENT_OTA_NOT_IN_PROGRESS);
         return ANEDYA_EXT_ERR;
     }
 
