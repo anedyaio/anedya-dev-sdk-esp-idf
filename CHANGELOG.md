@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.0.15
+- Interface added for Quectel
+- Now Certificate type can be selected from menuconfig
+- Bug fixes and improvements
+
 ## 0.0.14
 - Migrated to anedya-dev-core
 - Bugfixes and Performance improvements
