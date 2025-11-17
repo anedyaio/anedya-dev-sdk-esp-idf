@@ -6,7 +6,7 @@
 
 static sync_data_t *sync_data;
 static TaskHandle_t current_task;
-static char asset_version[50]={0};
+static char asset_version[50] = {0};
 
 static esp_err_t do_firmware_update(anedya_op_next_ota_resp_t *resp);
 
@@ -45,10 +45,13 @@ void ota_management_task(void *pvParameters)
             ESP_LOGI("OTA", "Waiting for client connection");
             vTaskDelay(1000 / portTICK_PERIOD_MS);
         }
+
+        // ============= Get next deplpoyment =================
         // Check for update on Anedya
-        ESP_LOGI("OTA", "Proceeding with the call!");
+        ESP_LOGI("OTA", "Proceeding with the next ota call!");
         anedya_txn_t ota_txn;
         anedya_asset_metadata_t meta[3];
+
         anedya_op_next_ota_resp_t resp;
         resp.asset.asset_metadata = meta;
         resp.asset.asset_metadata_len = 3;
@@ -175,10 +178,100 @@ void ota_management_task(void *pvParameters)
                 // printf("Current Asset Version: %s\n", asset_version);
             }
         }
+
+        // ============= Get Ongoing deplpoyment =================
+        // // // Check for update on Anedya
+        ESP_LOGI("OTA", "Proceeding with Ongoing OTA call!");
+        anedya_txn_t oota_txn;
+
+        anedya_asset_metadata_t meta_buf[3][3];   // 3 assets × 3 metadata each
+        anedya_asset_t asset_buf[3];              // 3 assets
+        anedya_op_ongoing_asset_list_t assets[3]; // list entries
+        anedya_op_ongoing_ota_resp_t o_resp;
+
+        // Initialize
+        for (int i = 0; i < 3; i++)
+        {
+            assets[i].asset = &asset_buf[i];
+            assets[i].asset->asset_metadata = meta_buf[i];
+            assets[i].asset->asset_metadata_len = 3;
+        }
+
+        // Assign list to response
+        o_resp.assets = assets;
+
+        // Register response buffer
+        oota_txn.response = &o_resp;
+        anedya_txn_register_callback(&oota_txn, TXN_COMPLETE, &current_task);
+
+        anedya_err_t o_aerr = anedya_op_ongoing_ota_req(&anedya_client, &oota_txn);
+        if (o_aerr != ANEDYA_OK)
+        {
+            ESP_LOGI("OTA", "%s", anedya_err_to_name(o_aerr));
+        }
+        ulNotifiedValue = 0x00;
+        xTaskNotifyWait(0x00, ULONG_MAX, &ulNotifiedValue, 30000 / portTICK_PERIOD_MS);
+        if (ulNotifiedValue == 0x01)
+        {
+            ESP_LOGI("OTA", "TXN Complete");
+            // OTA Txn completed.
+            if (oota_txn.is_success)
+            {
+                // Success full transaction
+                ESP_LOGI("OTA", "===== Ongoing OTA Response =====");
+                ESP_LOGI("OTA", "Count: %d", o_resp.count);
+
+                for (int i = 0; i < o_resp.count; i++)
+                {
+                    anedya_op_ongoing_asset_list_t *item = &o_resp.assets[i];
+                    anedya_asset_t *as = item->asset;
+
+                    ESP_LOGI("OTA", "----- Asset %d -----", i + 1);
+
+                    // Deployment ID
+                    char deployment_id_str[40];
+                    _anedya_uuid_marshal(item->deployment_id, deployment_id_str);
+                    ESP_LOGI("OTA", "deployment_id: %s", deployment_id_str);
+
+                    // Status
+                    ESP_LOGI("OTA", "status: %s", item->status);
+
+                    // Asset ID
+                    char asset_id_str[40];
+                    _anedya_uuid_marshal(as->asset_id, asset_id_str);
+                    ESP_LOGI("OTA", "asset_id: %s", asset_id_str);
+
+                    // Strings
+                    ESP_LOGI("OTA", "asset_identifier: %s", as->asset_identifier);
+                    ESP_LOGI("OTA", "asset_version: %s", as->asset_version);
+                    ESP_LOGI("OTA", "asset_checksum: %s", as->asset_checksum);
+                    ESP_LOGI("OTA", "asset_url: %s", as->asset_url);
+                    ESP_LOGI("OTA", "asset_signature: %s", as->asset_signature);
+
+                    // Lengths
+                    ESP_LOGI("OTA", "asset_identifier_len: %u", (unsigned)as->asset_identifier_len);
+                    ESP_LOGI("OTA", "asset_version_len: %u", (unsigned)as->asset_version_len);
+                    ESP_LOGI("OTA", "asset_checksum_len: %u", (unsigned)as->asset_checksum_len);
+                    ESP_LOGI("OTA", "asset_url_len: %u", (unsigned)as->asset_url_len);
+                    ESP_LOGI("OTA", "asset_signature_len: %u", (unsigned)as->asset_signature_len);
+
+                    // Signed flag
+                    ESP_LOGI("OTA", "asset_signed: %s", as->asset_signed ? "true" : "false");
+
+                    // Size
+                    ESP_LOGI("OTA", "asset_size: %u", (unsigned)as->asset_size);
+                }
+            }
+        }
+        else
+        {
+            ESP_LOGI("OTA", "TXN Timeout");
+            // TODO: Handle error
+        }
+
         vTaskDelay(11000 / portTICK_PERIOD_MS);
     }
 }
-
 
 static esp_err_t do_firmware_update(anedya_op_next_ota_resp_t *resp)
 {
@@ -190,8 +283,7 @@ static esp_err_t do_firmware_update(anedya_op_next_ota_resp_t *resp)
     // Carry out OTA update
     esp_http_client_config_t config = {
         .url = resp->asset.asset_url,
-        .crt_bundle_attach = esp_crt_bundle_attach
-    };
+        .crt_bundle_attach = esp_crt_bundle_attach};
     esp_https_ota_config_t ota_config = {
         .http_config = &config,
     };
