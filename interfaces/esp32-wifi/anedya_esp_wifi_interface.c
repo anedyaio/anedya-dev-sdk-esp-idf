@@ -119,6 +119,13 @@ anedya_mqtt_client_handle_t _anedya_interface_mqtt_init(anedya_client_t *parent,
             .authentication.password = secret,
             .client_id = devid,
         },
+        .task = {
+            .stack_size = ANEDYA_RX_BUFFER_SIZE+3112,
+            .priority = 1,
+        },
+        .buffer = {
+            .size = ANEDYA_RX_BUFFER_SIZE,
+        }
     };
     // ESP_LOGI("ANEDYA_ESPI", "Connecting to MQTT secret: %s  Length:%d", secret, parent->config->connection_key_len);
     client = esp_mqtt_client_init(&mqtt_cfg);

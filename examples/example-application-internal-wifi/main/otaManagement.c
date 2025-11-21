@@ -184,27 +184,34 @@ void ota_management_task(void *pvParameters)
         ESP_LOGI("OTA", "Proceeding with Ongoing OTA call!");
         anedya_txn_t oota_txn;
 
-        anedya_asset_metadata_t meta_buf[3][3];   // 3 assets × 3 metadata each
-        anedya_asset_t asset_buf[3];              // 3 assets
-        anedya_op_ongoing_asset_list_t assets[3]; // list entries
-        anedya_op_ongoing_ota_resp_t o_resp;
+        int asset_limit = 2;
 
+        anedya_req_ongoing_ota_obj_t ongoing_ota_req_obj;
+        ongoing_ota_req_obj.limit = asset_limit;
+        ongoing_ota_req_obj.offset = 0;
+
+        anedya_asset_metadata_t meta_buf[asset_limit][3];   // 3 assets × 3 metadata each
+        anedya_asset_t asset_buf[asset_limit];              // 3 assets
+        anedya_op_ongoing_asset_list_t assets[asset_limit]; // list entries
+        anedya_op_ongoing_ota_resp_t o_resp;
+        
         // Initialize
-        for (int i = 0; i < 3; i++)
+        for (int i = 0; i < asset_limit; i++)
         {
             assets[i].asset = &asset_buf[i];
-            assets[i].asset->asset_metadata = meta_buf[i];
+            assets[i].asset->asset_metadata = &meta_buf[i];
             assets[i].asset->asset_metadata_len = 3;
         }
-
+        
         // Assign list to response
         o_resp.assets = assets;
+        o_resp.count = asset_limit;                         // additional check
 
         // Register response buffer
         oota_txn.response = &o_resp;
         anedya_txn_register_callback(&oota_txn, TXN_COMPLETE, &current_task);
 
-        anedya_err_t o_aerr = anedya_op_ongoing_ota_req(&anedya_client, &oota_txn);
+        anedya_err_t o_aerr = anedya_op_ongoing_ota_req(&anedya_client, &oota_txn, ongoing_ota_req_obj);
         if (o_aerr != ANEDYA_OK)
         {
             ESP_LOGI("OTA", "%s", anedya_err_to_name(o_aerr));
