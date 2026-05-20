@@ -1,2 +1,4 @@
 [submodule "core"]
-	branch = development
+    path = core
+    url = https://github.com/anedyaio/anedya-dev-core.git
+    branch = development
