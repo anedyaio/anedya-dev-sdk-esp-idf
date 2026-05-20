@@ -12,6 +12,8 @@ menu "Anedya SDK Settings"
             bool "ESP32 internal WiFi"
         config AN_INTERFACE_ESP32_QUETEL
             bool "ESP32 Quectel EC200U/G"
+        config  AN_INTERFACE_ESP32_WIFI_QUETEL
+            bool "ESP32 WiFi / Quectel_EC200U/G"
     endchoice
     config AN_MAX_CONCURRENT_TXN
         int "Max concurrent transactions"

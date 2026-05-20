@@ -171,12 +171,12 @@ void app_main(void)
     vTaskDelay(1000 / portTICK_PERIOD_MS);
 #endif
 
-    xTaskCreate(ota_management_task, "OTA", 20 * 1024, &gatewaystate, 1, NULL);    // Start OTA Task
-    xTaskCreate(submitData_task, "SUBMITDATA", 6 * 1024, NULL, 2, NULL);           // Start Submit Data Task
-    xTaskCreate(valueStore_task, "VALUESTORE", 10240, NULL, 4, NULL);              // Start Valuestore Task
-    xTaskCreate(commandHandling_task, "COMMANDHANDLER", 12 * 1024, NULL, 1, NULL); // Start Command Handler
-    xTaskCreate(submitLog_task, "SUBMITLOG", 6 * 1024, NULL, 4, NULL);             // Start Submit Log
-    
+    xTaskCreate(ota_management_task, "OTA", 10240, &gatewaystate, 1, NULL);    // Start OTA Task
+    xTaskCreate(submitData_task, "SUBMITDATA", 4096, NULL, 2, NULL);           // Start Submit Data Task
+    xTaskCreate(valueStore_task, "VALUESTORE", 10240, NULL, 4, NULL);          // Start Valuestore Task
+    xTaskCreate(commandHandling_task, "COMMANDHANDLER", 10240, NULL, 1, NULL); // Start Command Handler
+    xTaskCreate(submitLog_task, "SUBMITLOG", 4096, NULL, 4, NULL);             // Start Submit Log
+
     for (;;)
     {
         // ================================================ Send Heartbeat to Anedya ================================================
