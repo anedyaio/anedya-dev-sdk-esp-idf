@@ -4,6 +4,8 @@ menu "Anedya SDK Settings"
         default CONN_ANEDYA_MQTT
         config CONN_ANEDYA_MQTT
             bool "MQTTS"
+        config CONN_ANEDYA_HTTPS
+            bool "HTTPS"
     endchoice
     choice "Interface Selection"
         prompt "Select interface for Anedya"

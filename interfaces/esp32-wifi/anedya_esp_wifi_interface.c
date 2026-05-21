@@ -16,8 +16,10 @@ static const char *TAG = "ANEDYA_ESPI";
 #define MAX_HTTP_RECV_BUFFER 512
 #define MAX_HTTP_OUTPUT_BUFFER 2048
 
+#ifdef ANEDYA_CONNECTION_METHOD_MQTT
 esp_mqtt_client_handle_t client;
 bool anedya_espi_mqtt_connected = false;
+#endif
 
 anedya_err_t _anedya_interface_init(anedya_client_t *client)
 {
@@ -36,6 +38,7 @@ uint64_t _anedya_interface_get_time_ms()
     return (uint64_t)ts.tv_sec * 1000 + (uint64_t)ts.tv_usec / 1000;
 }
 
+#ifdef ANEDYA_CONNECTION_METHOD_MQTT
 static void anedya_espi_mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data)
 {
     // ESP_LOGD(TAG, "Event dispatched from event loop base=%s, event_id=%" PRIi32, base, event_id);
@@ -99,8 +102,6 @@ static void anedya_espi_mqtt_event_handler(void *handler_args, esp_event_base_t 
         break;
     }
 }
-
-#ifdef ANEDYA_CONNECTION_METHOD_MQTT
 
 anedya_mqtt_client_handle_t _anedya_interface_mqtt_init(anedya_client_t *parent, char *broker, const char *devid, const char *secret)
 {
@@ -224,11 +225,11 @@ anedya_err_t anedya_set_message_callback(anedya_mqtt_client_handle_t anclient, a
     return ANEDYA_OK;
 }
 
+#endif
+
 void _anedya_interface_std_out(const char *str)
 {
     ESP_LOGI("ANEDYA_ESPI", "%s", str);
 }
-
-#endif
 
 #endif // AN_INTERFACE_ESP32_WIFI
