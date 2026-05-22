@@ -1,0 +1,115 @@
+menu "Device and Anedya Configuration"
+
+    menu "Anedya Config"
+        config CONNECTION_KEY
+            string "CONNECTION KEY"
+            default ""
+            help
+                Connection key to connect to anedya.
+        config EN_PROVISIONING
+            bool "Enable Provisioning"
+            default false
+        config BINDING_KEY
+            depends on  EN_PROVISIONING
+            string "BINDING SECRET"
+            default ""
+            help
+                Binding key to helps to bind the device.
+                depends on EN_PROVISIONING
+        config PHYSICAL_DEVICE_ID
+            string "PHYSICAL DEVICE ID"
+            default ""
+            help
+                Physical Device Id to connect to anedya.
+    endmenu
+                
+    menu "Wifi Settings"
+        config ESP_WIFI_SSID
+            string "WiFi SSID"
+            default ""
+            help
+                SSID (network name) for the example to connect to.
+                
+        config ESP_WIFI_PASSWORD
+            string "WiFi Password"
+            default ""
+            help
+                WiFi password (WPA or WPA2) for the example to use.
+        config WIFI_MAXIMUM_RETRY
+            int "Maximum retry"
+            default 5
+            help
+                Set the Maximum retry to avoid station reconnecting to the AP unlimited when the AP is really inexistent.
+
+        choice ESP_WIFI_SAE_MODE
+            prompt "WPA3 SAE mode selection"
+            default ESP_WPA3_SAE_PWE_BOTH
+            help
+                Select mode for SAE as Hunt and Peck, H2E or both.
+            config ESP_WPA3_SAE_PWE_HUNT_AND_PECK
+                bool "HUNT AND PECK"
+            config ESP_WPA3_SAE_PWE_HASH_TO_ELEMENT
+                bool "H2E"
+            config ESP_WPA3_SAE_PWE_BOTH
+                bool "BOTH"
+        endchoice
+
+        config ESP_WIFI_PW_ID
+            string "PASSWORD IDENTIFIER"
+            depends on  ESP_WPA3_SAE_PWE_HASH_TO_ELEMENT|| ESP_WPA3_SAE_PWE_BOTH
+            default "Aneyda"
+            help
+                password identifier for SAE H2E
+
+        choice ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD
+            prompt "WiFi Scan auth mode threshold"
+            default ESP_WIFI_AUTH_WPA2_PSK
+            help
+                The weakest authmode to accept in the scan mode.
+                This value defaults to ESP_WIFI_AUTH_WPA2_PSK incase password is present and ESP_WIFI_AUTH_OPEN is used.
+                Please select ESP_WIFI_AUTH_WEP/ESP_WIFI_AUTH_WPA_PSK incase AP is operating in WEP/WPA mode.
+
+            config ESP_WIFI_AUTH_OPEN
+                bool "OPEN"
+            config ESP_WIFI_AUTH_WEP
+                bool "WEP"
+            config ESP_WIFI_AUTH_WPA_PSK
+                bool "WPA PSK"
+            config ESP_WIFI_AUTH_WPA2_PSK
+                bool "WPA2 PSK"
+            config ESP_WIFI_AUTH_WPA_WPA2_PSK
+                bool "WPA/WPA2 PSK"
+            config ESP_WIFI_AUTH_WPA3_PSK
+                bool "WPA3 PSK"
+            config ESP_WIFI_AUTH_WPA2_WPA3_PSK
+                bool "WPA2/WPA3 PSK"
+            config ESP_WIFI_AUTH_WAPI_PSK
+                bool "WAPI PSK"
+        endchoice
+    endmenu
+
+    menu "Time Settings"
+
+        config SNTP_TIME_SERVER
+            string "SNTP server name"
+            default "time.google.com"
+            help
+                Hostname of the main SNTP server.
+    
+        choice SNTP_TIME_SYNC_METHOD
+            prompt "Time synchronization method"
+            default SNTP_TIME_SYNC_METHOD_SMOOTH
+            help
+                Time synchronization method.
+    
+            config SNTP_TIME_SYNC_METHOD_IMMED
+                bool "update time immediately when received"
+            config SNTP_TIME_SYNC_METHOD_SMOOTH
+                bool "update time with smooth method (adjtime)"
+            config SNTP_TIME_SYNC_METHOD_CUSTOM
+                bool "custom implementation"
+        endchoice
+    
+    endmenu
+
+endmenu
