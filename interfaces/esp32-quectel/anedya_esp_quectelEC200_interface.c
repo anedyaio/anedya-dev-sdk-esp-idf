@@ -1,4 +1,4 @@
-#include "sdkconfig.h"
+#include "anedya_sdk_config.h"
 
 #ifdef CONFIG_AN_INTERFACE_ESP32_QUETEL
 #include "anedya_interface.h"
