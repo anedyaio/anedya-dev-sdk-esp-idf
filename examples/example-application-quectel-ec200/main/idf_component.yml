@@ -1,4 +1,0 @@
-dependencies:
-  anedya/anedya-esp: ^0.0.15
-  idf:
-    version: '>=4.1.0'
