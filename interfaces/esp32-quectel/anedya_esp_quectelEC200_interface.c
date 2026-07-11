@@ -1,4 +1,4 @@
-#include "anedya_sdk_config.h"
+#include "sdkconfig.h"
 
 #ifdef CONFIG_AN_INTERFACE_ESP32_QUETEL
 #include "anedya_interface.h"
@@ -14,7 +14,7 @@
 #include <sys/time.h>
 
 static const char *TAG = "Anedya";
-static short debug_level = 5;
+static short debug_level = 0;
 
 static esp_mqtt_client_config_t mqtt_cfg;
 
@@ -531,7 +531,8 @@ anedya_err_t _anedya_interface_init(anedya_client_t *client) {
   }
 
   char ifc_cmd[32];
-  snprintf(ifc_cmd, sizeof(ifc_cmd), "AT+IFC=%d,%d\r\n", dce_by_dte, dte_by_dce);
+  snprintf(ifc_cmd, sizeof(ifc_cmd), "AT+IFC=%d,%d\r\n", dce_by_dte,
+           dte_by_dce);
 
   if (xSemaphoreTake(uart_port_mutex, 5000 / portTICK_PERIOD_MS) == pdTRUE) {
     _anedya_ext_send_AT_command(ifc_cmd, MODEM_RESP_WAIT, NULL, 0, "OK", 2000);
@@ -560,6 +561,38 @@ anedya_err_t _anedya_interface_init(anedya_client_t *client) {
         err = anedya_ext_signal_quality(client, &rssi, NULL, 2000);
         if (debug_level > 0)
           ESP_LOGI(TAG, "Status: %d, Mode: %d, RSSI: %d", status, mode, rssi);
+
+        if (status == 1 || status == 5) {
+          char pdp_status[256] = {0};
+          err = anedya_ext_read_pdp_context(client, pdp_status, 5000);
+          bool has_active_pdp = false;
+          if (err == ANEDYA_OK && strlen(pdp_status) > 0 &&
+              strstr(pdp_status, "+QIACT:") != NULL) {
+            has_active_pdp = true;
+            if (debug_level > 0)
+              ESP_LOGI(TAG, "Active PDP Context found: %s", pdp_status);
+          }
+
+          if (!has_active_pdp) {
+            if (debug_level > 0)
+              ESP_LOGI(
+                  TAG,
+                  "No active PDP context. Activating configured contexts...");
+            anedya_ext_apn_config_t *apn_config =
+                (anedya_ext_apn_config_t *)ext_config->apn_configs;
+            bool cid_attempted[8] = {false};
+            for (int i = 0; i < ext_config->apn_count; i++) {
+              int cid = apn_config[i].cid;
+              if (cid >= 1 && cid <= 7 && !cid_attempted[cid]) {
+                cid_attempted[cid] = true;
+                if (debug_level > 0)
+                  ESP_LOGI(TAG, "Activating PDP context CID %d...", cid);
+                anedya_ext_activate_pdp_context(client, cid, 20000);
+              }
+            }
+          }
+        }
+
         char ping_url[100] = {0};
         snprintf(ping_url, 100, "https://device.%s.anedya.io/v1/check",
                  client->config->region);
@@ -573,9 +606,11 @@ anedya_err_t _anedya_interface_init(anedya_client_t *client) {
           if (debug_level > 0)
             ESP_LOGI(TAG, "Setting APN...");
 
-          err = anedya_ext_deactivate_pdp_context(client, 1, 2000);
           anedya_ext_apn_config_t *apn_config =
               (anedya_ext_apn_config_t *)ext_config->apn_configs;
+          for (int i = 0; i < ext_config->apn_count; i++) {
+            anedya_ext_deactivate_pdp_context(client, apn_config[i].cid, 2000);
+          }
           for (int i = 0; i < ext_config->apn_count; i++) {
             if (apn_config[i].apn == NULL) {
               ESP_LOGE(TAG, "APN is NULL, plz check the config");
@@ -906,8 +941,28 @@ anedya_err_t anedya_ext_net_check(anedya_client_t *client, char *url,
   xSemaphoreTake(uart_port_mutex, portMAX_DELAY);
 
   // Configure HTTP and SSL
-  _anedya_ext_send_AT_command("AT+QHTTPCFG=\"contextid\",1\r\n",
-                              MODEM_RESP_WAIT, NULL, 0, "OK", 5000);
+  int active_cid = 1;
+  char qiact_resp[128] = {0};
+  if (_anedya_ext_send_AT_command("AT+QIACT?\r\n", MODEM_RESP_WAIT, qiact_resp,
+                                  sizeof(qiact_resp),
+                                  "+QIACT:", 5000) == ANEDYA_OK) {
+    int parsed_cid = -1;
+    if (sscanf(qiact_resp, "+QIACT: %d", &parsed_cid) == 1) {
+      if (parsed_cid >= 1 && parsed_cid <= 7) {
+        active_cid = parsed_cid;
+        if (debug_level > 0) {
+          ESP_LOGI(TAG, "HTTP Check using active PDP context CID: %d",
+                   active_cid);
+        }
+      }
+    }
+  }
+
+  char AT_cmd_cfg[64];
+  snprintf(AT_cmd_cfg, sizeof(AT_cmd_cfg), "AT+QHTTPCFG=\"contextid\",%d\r\n",
+           active_cid);
+  _anedya_ext_send_AT_command(AT_cmd_cfg, MODEM_RESP_WAIT, NULL, 0, "OK", 5000);
+
   _anedya_ext_send_AT_command("AT+QHTTPCFG=\"responseheader\",1\r\n",
                               MODEM_RESP_WAIT, NULL, 0, "OK", 5000);
   _anedya_ext_send_AT_command("AT+QHTTPCFG=\"requestheader\",0\r\n",
@@ -966,9 +1021,10 @@ anedya_err_t anedya_ext_net_check(anedya_client_t *client, char *url,
       }
     } else {
       ESP_LOGW(TAG, "Invalid Ping Response: %s", cmd_response);
+      return ANEDYA_EXT_ERR;
     }
   } else {
-    ESP_LOGE(TAG, "Ping failed: %s", cmd_response);
+    ESP_LOGE(TAG, "Ping failed: empty response");
     return ANEDYA_EXT_ERR;
   }
   return ANEDYA_OK;
@@ -1106,31 +1162,33 @@ anedya_mqtt_client_handle_t _anedya_interface_mqtt_init(anedya_client_t *parent,
     xSemaphoreGive(uart_port_mutex);
     return (void *)NULL;
   }
-  for (int i = 0; i < anedya_tls_root_ca_len; i++) {
-    char data[2];
-    data[0] = anedya_tls_root_ca[i];
-    data[1] = '\0';
-    int bytes_written = uart_write_bytes(UART_PORT_NUMBER, data, strlen(data));
-    if (bytes_written != strlen(data)) {
-      ESP_LOGE(TAG,
-               "Failed to write %d bytes to UART. Only %d bytes were written.",
-               strlen(data), bytes_written);
-      xSemaphoreGive(uart_port_mutex);
-      return NULL;
-    }
+
+  int bytes_written = uart_write_bytes(UART_PORT_NUMBER, anedya_tls_root_ca,
+                                       anedya_tls_root_ca_len);
+  if (bytes_written != anedya_tls_root_ca_len) {
+    ESP_LOGE(TAG,
+             "Failed to write %d bytes to UART. Only %d bytes were written.",
+             anedya_tls_root_ca_len, bytes_written);
+    xSemaphoreGive(uart_port_mutex);
+    return NULL;
   }
+
   if (!xEventGroupWaitBits(ModemEvents, MODEM_EVENT_RECEIVE_DATA, pdFALSE,
                            pdFALSE, 10000 / portTICK_PERIOD_MS)) {
     ESP_LOGE(TAG, "Failed to upload anedya tls root ca!");
     xSemaphoreGive(uart_port_mutex);
     return NULL;
   }
-  if (strncmp((char *)dtmp, "+QFWRITE: 769,769", strlen("+QFWRITE: 769,769")) ==
-      0) {
+  char expected_qfwrite_resp[40];
+  snprintf(expected_qfwrite_resp, sizeof(expected_qfwrite_resp),
+           "+QFWRITE: %d,%d", anedya_tls_root_ca_len, anedya_tls_root_ca_len);
+  if (strncmp((char *)dtmp, expected_qfwrite_resp,
+              strlen(expected_qfwrite_resp)) == 0) {
     if (debug_level > 2)
       ESP_LOGI(TAG, "set anedya tls root ca success!");
   } else {
-    ESP_LOGE(TAG, "Failed to upload anedya tls root ca!");
+    ESP_LOGE(TAG, "Failed to upload anedya tls root ca! Response: %s",
+             (char *)dtmp);
     xSemaphoreGive(uart_port_mutex);
     return NULL;
   }
@@ -1147,6 +1205,32 @@ anedya_mqtt_client_handle_t _anedya_interface_mqtt_init(anedya_client_t *parent,
                                     MODEM_RESP_WAIT, NULL, 0, "OK", 2000);
   err = _anedya_ext_send_AT_command("AT+QMTCFG=\"SSL\",0,1,2\r\n",
                                     MODEM_RESP_WAIT, NULL, 0, "OK", 2000);
+
+  // Detect active PDP context and bind to MQTT
+  int active_cid = 1;
+  char qiact_resp[128] = {0};
+  err =
+      _anedya_ext_send_AT_command("AT+QIACT?\r\n", MODEM_RESP_WAIT, qiact_resp,
+                                  sizeof(qiact_resp), "+QIACT:", 5000);
+  if (err == ANEDYA_OK && strlen(qiact_resp) > 0) {
+    int parsed_cid = -1;
+    if (sscanf(qiact_resp, "+QIACT: %d", &parsed_cid) == 1) {
+      if (parsed_cid >= 1 && parsed_cid <= 7) {
+        active_cid = parsed_cid;
+        ESP_LOGI(TAG, "Detected active PDP context CID: %d", active_cid);
+      }
+    }
+  } else {
+    ESP_LOGW(TAG, "No active PDP context found or AT+QIACT? failed. Using "
+                  "default CID: 1");
+  }
+
+  snprintf(AT_cmd, sizeof(AT_cmd), "AT+QMTCFG=\"version\",0,4\r\n");
+  _anedya_ext_send_AT_command(AT_cmd, MODEM_RESP_WAIT, NULL, 0, "OK", 2000);
+
+  snprintf(AT_cmd, sizeof(AT_cmd), "AT+QMTCFG=\"pdpcid\",0,%d\r\n", active_cid);
+  _anedya_ext_send_AT_command(AT_cmd, MODEM_RESP_WAIT, NULL, 0, "OK", 2000);
+
   err = _anedya_ext_send_AT_command(
       "AT+QSSLCFG=\"cacert\",2,\"UFS:anedya_tls_root_ca.pem\"\r\n",
       MODEM_RESP_WAIT, NULL, 0, "OK", 2000);
