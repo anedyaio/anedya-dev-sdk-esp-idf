@@ -14,7 +14,7 @@
 #include <math.h>
 
 static const char *TAG = "Anedya";
-static short debug_level = 5;
+static short debug_level = 0;
 
 static esp_mqtt_client_config_t mqtt_cfg;
 
