@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.0.16
+- Added: Http support for Wifi interface
+- Added: Current OTA get operations
+- Improvement Quectel EC200u/g interface
+
 ## 0.0.15
 - Interface added for Quectel
 - Now Certificate type can be selected from menuconfig

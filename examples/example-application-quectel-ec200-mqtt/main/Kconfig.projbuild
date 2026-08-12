@@ -1,0 +1,49 @@
+menu "Device and Anedya Configuration"
+
+    menu "Anedya Config"
+        config CONNECTION_KEY
+            string "CONNECTION KEY"
+            default ""
+            help
+                Connection key to connect to anedya.
+        config EN_PROVISIONING
+            bool "Enable Provisioning"
+            default false
+        config BINDING_KEY
+            depends on EN_PROVISIONING
+            string "BINDING SECRET"
+            default ""
+            help
+                Binding key to helps to bind the device.
+                depends on EN_PROVISIONING
+        config PHYSICAL_DEVICE_ID
+            string "PHYSICAL DEVICE ID"
+            default ""
+            help
+                Physical Device Id to connect to anedya.
+    endmenu
+
+
+    # ── Quectel Hardware Settings (visible only when Quectel selected) ─────────
+    menu "Hardware Settings (Quectel)"
+        config MCU_RX_PIN
+            int "MCU RX PIN"
+            default 15
+        config MCU_TX_PIN
+            int "MCU TX PIN"
+            default 16
+        config MCU_CTS_PIN
+            int "MCU CTS PIN"
+            default 42
+        config MCU_RTS_PIN
+            int "MCU RTS PIN"
+            default 45
+        config MCU_QUECTEL_RST
+            int "Quectel RST PIN"
+            default 6
+        config MCU_QUECTEL_PWR
+            int "Quectel PWR PIN"
+            default 4
+    endmenu
+
+endmenu

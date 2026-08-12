@@ -2,7 +2,7 @@
 
 #include "sdkconfig.h"
 
-#ifdef CONFIG_AN_INTERFACE_ESP32_QUETEL
+#ifdef CONFIG_AN_INTERFACE_ESP32_WIFI_QUETEL
 
 #include "anedya_sdk_config.h"
 
@@ -27,6 +27,40 @@ extern "C"
 #include "driver/gpio.h"
 #include "driver/uart.h"
 
+#define Anedya_Network_Interface_UNDEFINED -1
+#define Anedya_Network_Interface_WIFI 0
+#define Anedya_Network_Interface_QUECTEL 1
+  anedya_err_t anedya_choose_network_interface(short network_interface);
+
+  //==================================== wifi ====================================
+  uint64_t _anedya_wifi_interface_get_time_ms();
+  void _anedya_wifi_interface_std_out(const char *str);
+
+  static void anedya_wifi_espi_mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data);
+  anedya_mqtt_client_handle_t _anedya_wifi_interface_mqtt_init(anedya_client_t *parent, char *broker, const char *devid, const char *secret);
+  anedya_err_t anedya_wifi_interface_mqtt_connect(anedya_mqtt_client_handle_t anclient);
+  anedya_err_t anedya_wifi_interface_mqtt_disconnect(anedya_mqtt_client_handle_t anclient);
+  anedya_err_t anedya_wifi_interface_mqtt_destroy(anedya_mqtt_client_handle_t anclient);
+  size_t anedya_wifi_interface_mqtt_status(anedya_mqtt_client_handle_t anclient);
+  anedya_err_t anedya_wifi_interface_mqtt_subscribe(anedya_mqtt_client_handle_t anclient, char *topic, int topilc_len, int qos);
+  anedya_err_t anedya_wifi_interface_mqtt_unsubscribe(anedya_mqtt_client_handle_t anclient, char *topic, int topic_len);
+  anedya_err_t anedya_wifi_interface_mqtt_publish(anedya_mqtt_client_handle_t anclient, char *topic, int topic_len, char *payload, int payload_len, int qos, int retain);
+  anedya_err_t anedya_wifi_set_message_callback(anedya_mqtt_client_handle_t anclient, anedya_client_t *client);
+
+  // ==================================== Quectel ====================================
+
+  anedya_err_t _anedya_quectel_interface_init(anedya_client_t *client);
+  uint64_t _anedya_quectel_interface_get_time_ms();
+  void _anedya_quectel_interface_std_out(const char *str);
+  anedya_mqtt_client_handle_t _anedya_quectel_interface_mqtt_init(anedya_client_t *parent, char *broker, const char *devid, const char *secret);
+  anedya_err_t anedya_quectel_interface_mqtt_connect(anedya_mqtt_client_handle_t anclient);
+  anedya_err_t anedya_quectel_interface_mqtt_disconnect(anedya_mqtt_client_handle_t anclient);
+  anedya_err_t anedya_quectel_interface_mqtt_destroy(anedya_mqtt_client_handle_t anclient);
+  size_t anedya_quectel_interface_mqtt_status(anedya_mqtt_client_handle_t anclient);
+  anedya_err_t anedya_quectel_interface_mqtt_subscribe(anedya_mqtt_client_handle_t anclient, char *topic, int topilc_len, int qos);
+  anedya_err_t anedya_quectel_interface_mqtt_unsubscribe(anedya_mqtt_client_handle_t anclient, char *topic, int topic_len);
+  anedya_err_t anedya_quectel_interface_mqtt_publish(anedya_mqtt_client_handle_t anclient, char *topic, int topic_len, char *payload, int payload_len, int qos, int retain);
+  anedya_err_t anedya_quectel_set_message_callback(anedya_mqtt_client_handle_t anclient, anedya_client_t *client);
 
   typedef struct
   {
@@ -278,7 +312,7 @@ extern "C"
    * @warning The UART must be initialized before calling this function.
    * @note Ensure that the `apn` pointer is not NULL.
    */
-  anedya_err_t anedya_ext_set_apn(anedya_client_t *client, int cid, const char *ip_ver, const char *apn, const char *user, const char *pass);
+  anedya_err_t anedya_ext_set_apn(anedya_client_t *client, int cid, char *ip_ver, char *apn, char *user, char *pass);
 
   /**
    * @brief Gets the current date and time from the modem
